@@ -256,9 +256,9 @@ sealed class MainForm : Form {
     int page;
     int selected=-1; bool initializing=true, quitting;
     public MainForm(MouseSession s) {
-        session=s; Text="指针工坊 · Mouse Studio 1.1"; ClientSize=new Size(1060,810); MinimumSize=new Size(800,640);
+        session=s; Text="指针工坊 · Mouse Studio 1.1.1"; ClientSize=new Size(1060,810); MinimumSize=new Size(800,640);
         Font=new Font("Microsoft YaHei UI",14,FontStyle.Regular,GraphicsUnit.Pixel); BackColor=Color.FromArgb(247,248,244); ForeColor=Ink; AutoScaleMode=AutoScaleMode.Dpi; StartPosition=FormStartPosition.CenterScreen;
-        using(var b=Art.Render(4,64,32512)) { IntPtr h=b.GetHicon(); try { Icon=(Icon)Icon.FromHandle(h).Clone(); } finally { Native.DestroyIcon(h); } }
+        using(var stream=typeof(MainForm).Assembly.GetManifestResourceStream("MouseStudio.AppIcon")) using(var appIcon=new Icon(stream,32,32)) Icon=(Icon)appIcon.Clone();
         var root=new Panel { Dock=DockStyle.Fill,AutoScroll=true,Padding=new Padding(32) }; Controls.Add(root);
         Label brand=TextLabel("MOUSE STUDIO   /   指针工坊",32,22,650,25,10,FontStyle.Bold); brand.ForeColor=Green; root.Controls.Add(brand);
         root.Controls.Add(TextLabel("让每一次移动，都有你的风格。",30,51,940,59,19,FontStyle.Bold));

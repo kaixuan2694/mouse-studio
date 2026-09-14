@@ -1,6 +1,12 @@
+<p align="center"><img src="assets/mouse-studio.png" width="112" height="112" alt="Mouse Studio 图标"></p>
+
 # 指针工坊 · Mouse Studio
 
+**简体中文** | [English](README.en.md)
+
 一款轻量的 Windows 桌面鼠标定制工具。选择指针风格，拖动滑块调整大小与灵敏度，立即应用到真实的 Windows 系统鼠标。
+
+**如果觉得这个小工具有用，欢迎给我一个 ⭐ Star！**
 
 ![指针工坊界面](preview.png)
 
@@ -37,6 +43,8 @@ cd mouse-studio
 ```
 
 构建脚本使用 Windows 自带的 .NET Framework C# 编译器，不依赖 NuGet 或其他第三方包。所有指针图形都由源码绘制，并内置在 EXE 中。
+
+应用图标包含 16–256 px 的九种尺寸，内嵌于 EXE，供资源管理器、桌面快捷方式、窗口和托盘使用。设计源文件位于 `assets/mouse-studio.svg`；运行 `.\build.ps1 -RebuildIcon` 可用 `tools/IconBuilder.cs` 重建配套 PNG / ICO 并编译。程序运行时无需携带图标文件。
 
 ## 验证
 

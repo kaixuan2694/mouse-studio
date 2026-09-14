@@ -10,6 +10,7 @@ SHA256SUMS.txt
 .vscode/
 bin/
 obj/
+release/
 Thumbs.db
 Desktop.ini
 *.user
