@@ -1,0 +1,16 @@
+# Build and release outputs
+*.exe
+*.zip
+*.pdb
+test-results.txt
+SHA256SUMS.txt
+
+# Local editor and OS files
+.vs/
+.vscode/
+bin/
+obj/
+Thumbs.db
+Desktop.ini
+*.user
+*.suo
