@@ -24,7 +24,7 @@ Built for Windows 10 / 11 with .NET Framework 4.x. No installation, administrato
 - **Pointer size:** adjust the cursor canvas from 24 to 96 px while preserving its click hotspot.
 - **Mouse sensitivity:** adjust all 20 native Windows pointer-speed levels while preserving the existing acceleration setting.
 - **14 system cursor roles:** includes normal selection, text selection, links, resizing, moving, busy, unavailable, and help states.
-- **Tray support and recovery:** close the window to keep the app running in the notification area. Exit and restore the settings captured at startup with `Ctrl+Q` or the tray menu.
+- **Tray support and recovery:** close the window to keep the app running in the notification area. With `Ctrl+Q` or the tray menu, exit, reload the saved Windows cursor theme, and restore the mouse speed captured at startup. Recovery avoids potentially invalid temporary cursor copies.
 - **A consistent app icon:** a forest-green tile with a light pointer and a small golden star, embedded in the EXE at nine resolutions for Explorer, desktop shortcuts, the window, and the tray.
 
 ## Quick guide
@@ -33,7 +33,7 @@ Built for Windows 10 / 11 with .NET Framework 4.x. No installation, administrato
 2. Use **上一页 / 下一页** to switch pages. Changing pages keeps your active cursor selected.
 3. Click a card's small color swatch. **自选颜色…** opens the color picker; **恢复这款默认配色** restores that style's default colors. Editing the active style updates the system cursor immediately; other styles apply when selected.
 4. Drag **指针大小** to resize the pointer, and **鼠标灵敏度** to change its speed.
-5. Click **恢复原设置** to restore the cursor and speed captured when the app started. Saved color preferences are kept.
+5. Click **恢复原设置** to reload the saved Windows cursor theme and restore the speed captured when the app started. Saved color preferences are kept. Unsaved temporary cursor changes from other apps are not restored.
 6. Closing the window sends the app to the system tray. Double-click its icon to reopen it, or right-click and choose **退出并恢复** to exit and restore. You can also press `Ctrl+Q` in the app window.
 
 Before upgrading, exit the old version using its tray menu, then open the new EXE.
@@ -80,6 +80,8 @@ Get-Content .\test-results.txt
 Exit any running instance before running `--self-test`. This test temporarily changes the computer's mouse settings and attempts restoration in a `finally` block, including when a test fails.
 
 Coverage includes 20 styles × 3 sizes × 14 system cursor roles, hotspot checks, speed readback, comparison of the original and restored cursor images and masks, page navigation, independent colors, actual system color updates, sliders, tray behavior, and exit.
+
+Run `tools/test-exit.ps1` for a separate-process exit regression test. It verifies actual cursor rendering after the app process has ended, including an initially invisible cursor, normal exit, tray exit, a pending size update, exceptional cleanup, and repeated restoration. It also checks the active cursor returned by `GetCursorInfo`. Exit running instances first; the test temporarily changes mouse settings and reloads the saved theme on completion.
 
 ## Contributing
 

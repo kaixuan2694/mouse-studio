@@ -18,6 +18,7 @@ static class Native {
     [DllImport("user32.dll", SetLastError=true)] public static extern IntPtr CopyImage(IntPtr image, uint type, int x, int y, uint flags);
     [DllImport("user32.dll", SetLastError=true)] public static extern IntPtr CreateIconIndirect(ref IconInfo info);
     [DllImport("user32.dll", SetLastError=true)] public static extern bool GetIconInfo(IntPtr icon, out IconInfo info);
+    [DllImport("user32.dll")] public static extern IntPtr SetCursor(IntPtr cursor);
     [DllImport("user32.dll")] public static extern bool DestroyCursor(IntPtr cursor);
     [DllImport("user32.dll")] public static extern bool DestroyIcon(IntPtr icon);
     [DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr obj);
@@ -26,6 +27,15 @@ static class Native {
     public static void Check(bool ok) { if(!ok) throw new Win32Exception(Marshal.GetLastWin32Error()); }
     public static int Speed { get { int n=10; Check(GetParameter(0x70,0,ref n,0)); return n; } set { Check(SystemParametersInfo(0x71,0,new IntPtr(Math.Max(1,Math.Min(20,value))),0)); } }
     public static IntPtr Copy(IntPtr h) { IntPtr c=CopyImage(h,2,0,0,0); Check(c!=IntPtr.Zero); return c; }
+    public static void ReloadCursors() {
+        // Reload Windows-owned theme resources, including animated cursors. Do not
+        // rebuild the theme from process-owned copies of possibly stale handles.
+        Check(SystemParametersInfo(0x57,0,IntPtr.Zero,0));
+        IntPtr arrow=LoadCursor(IntPtr.Zero,new IntPtr(32512)); Check(arrow!=IntPtr.Zero);
+        // Refresh the current cursor immediately; the user should not need to move
+        // into another window to stop displaying a superseded cursor handle.
+        SetCursor(arrow);
+    }
     public static IntPtr CursorFrom(int style, int size, uint role) {
         using(Bitmap b=Art.Render(style,size,role)) {
             IntPtr color=b.GetHbitmap(Color.FromArgb(0));
@@ -41,16 +51,11 @@ static class Native {
 }
 
 sealed class MouseSession : IDisposable {
-    readonly Dictionary<uint,IntPtr> originals=new Dictionary<uint,IntPtr>();
     readonly int speed;
     bool dirty;
     public bool Active { get { return dirty; } }
     public static string RecoveryPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MouseStudio","recovery.txt"); } }
-    public MouseSession() {
-        speed=Native.Speed;
-        try { foreach(uint id in Native.Roles) originals[id]=Native.Copy(Native.LoadCursor(IntPtr.Zero,new IntPtr(id))); }
-        catch { Dispose(); throw; }
-    }
+    public MouseSession() { speed=Native.Speed; }
     void BeforeChange() {
         if(dirty) return;
         Directory.CreateDirectory(Path.GetDirectoryName(RecoveryPath));
@@ -76,23 +81,22 @@ sealed class MouseSession : IDisposable {
     public void Restore() {
         if(!dirty) return;
         Exception error=null;
-        foreach(var kv in originals) {
-            try { Native.Check(Native.SetSystemCursor(Native.Copy(kv.Value),kv.Key)); }
-            catch(Exception e) { error=e; }
-        }
+        try { Native.ReloadCursors(); } catch(Exception e) { error=e; }
         try { Native.Speed=speed; } catch(Exception e) { error=e; }
         if(error!=null) throw error;
         dirty=false;
         if(File.Exists(RecoveryPath)) File.Delete(RecoveryPath);
     }
     public static void Recover() {
-        Native.Check(Native.SystemParametersInfo(0x57,0,IntPtr.Zero,0));
+        Native.ReloadCursors();
         if(File.Exists(RecoveryPath)) {
             int n; if(int.TryParse(File.ReadAllText(RecoveryPath),out n) && n>=1 && n<=20) Native.Speed=n;
             File.Delete(RecoveryPath);
         }
     }
-    public void Dispose() { foreach(IntPtr h in originals.Values) Native.DestroyCursor(h); originals.Clear(); }
+    // Also restore if the message loop exits without FormClosing (for example,
+    // an exception). Keep the recovery marker when restoration fails.
+    public void Dispose() { Restore(); }
 }
 
 static class Art {
@@ -256,7 +260,7 @@ sealed class MainForm : Form {
     int page;
     int selected=-1; bool initializing=true, quitting;
     public MainForm(MouseSession s) {
-        session=s; Text="指针工坊 · Mouse Studio 1.1.1"; ClientSize=new Size(1060,810); MinimumSize=new Size(800,640);
+        session=s; Text="指针工坊 · Mouse Studio 1.1.2"; ClientSize=new Size(1060,810); MinimumSize=new Size(800,640);
         Font=new Font("Microsoft YaHei UI",14,FontStyle.Regular,GraphicsUnit.Pixel); BackColor=Color.FromArgb(247,248,244); ForeColor=Ink; AutoScaleMode=AutoScaleMode.Dpi; StartPosition=FormStartPosition.CenterScreen;
         using(var stream=typeof(MainForm).Assembly.GetManifestResourceStream("MouseStudio.AppIcon")) using(var appIcon=new Icon(stream,32,32)) Icon=(Icon)appIcon.Clone();
         var root=new Panel { Dock=DockStyle.Fill,AutoScroll=true,Padding=new Padding(32) }; Controls.Add(root);
@@ -331,7 +335,7 @@ sealed class MainForm : Form {
     }
     void Error(Exception ex) { status.Text="未能完成操作 · "+ex.Message; MessageBox.Show(this,ex.Message,"操作未完成",MessageBoxButtons.OK,MessageBoxIcon.Warning); }
     void Restore() {
-        debounce.Stop(); try { session.Restore(); selected=-1; foreach(var c in cards) { c.Selected=false; c.Invalidate(); } initializing=true; speedBar.Value=Native.Speed; initializing=false; UpdateValues(); status.Text="已恢复 · 启动时的指针与鼠标速度"; } catch(Exception ex) { Error(ex); }
+        debounce.Stop(); try { if(session.Active) session.Restore(); else Native.ReloadCursors(); selected=-1; foreach(var c in cards) { c.Selected=false; c.Invalidate(); } initializing=true; speedBar.Value=Native.Speed; initializing=false; UpdateValues(); status.Text="已恢复 · Windows 已保存的指针主题与原鼠标速度"; } catch(Exception ex) { Error(ex); }
     }
     void ShowWindow() { Show(); WindowState=FormWindowState.Normal; Activate(); tray.Visible=false; }
     void Quit() { quitting=true; Close(); }
