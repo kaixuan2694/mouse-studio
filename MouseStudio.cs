@@ -96,10 +96,17 @@ sealed class MouseSession : IDisposable {
 }
 
 static class Art {
-    public static readonly string[] Names={"极简白","曜石黑","赛博霓虹","樱花粉","薄荷绿","像素复古","日落橙","深海蓝","香槟金","星际紫"};
-    public static readonly string[] Tags={"清晰 · 经典","沉稳 · 锐利","荧光 · 未来","柔和 · 甜美","轻盈 · 自然","方格 · 怀旧","暖色 · 活力","流线 · 冷静","金属 · 精致","星芒 · 幻想"};
-    public static readonly Color[] Fills={Color.White,Color.FromArgb(32,37,44),Color.FromArgb(14,26,40),Color.FromArgb(255,178,207),Color.FromArgb(110,224,181),Color.FromArgb(255,249,220),Color.FromArgb(255,152,69),Color.FromArgb(47,143,232),Color.FromArgb(224,190,118),Color.FromArgb(183,145,244)};
-    public static readonly Color[] Edges={Color.FromArgb(36,42,50),Color.FromArgb(220,227,237),Color.FromArgb(74,244,226),Color.FromArgb(136,50,91),Color.FromArgb(22,94,78),Color.FromArgb(62,52,55),Color.FromArgb(136,55,27),Color.FromArgb(15,50,108),Color.FromArgb(88,67,33),Color.FromArgb(71,43,123)};
+    public static readonly string[] Names={"素笺","藏锋","流光","桃夭","听竹","方寸","逐日","渡海","鎏月","星游","游龙","折纸","飞羽","长剑","团扇","小鱼","猫步","玉簪","山岚","火箭"};
+    public static readonly string[] Tags={"清晰 · 经典","沉稳 · 锐利","荧光 · 未来","柔和 · 甜美","轻盈 · 自然","像素 · 怀旧","暖意 · 活力","流线 · 冷静","金属 · 精致","星芒 · 幻想","蜿蜒 · 灵动","纸飞机 · 童心","羽翼 · 轻盈","剑意 · 侠气","扇影 · 风雅","游鱼 · 自在","猫耳 · 俏皮","簪花 · 清雅","山峰 · 空灵","升空 · 探索"};
+    public static readonly Color[] Fills={Color.White,Color.FromArgb(32,37,44),Color.FromArgb(14,26,40),Color.FromArgb(255,178,207),Color.FromArgb(110,224,181),Color.FromArgb(255,249,220),Color.FromArgb(255,152,69),Color.FromArgb(47,143,232),Color.FromArgb(224,190,118),Color.FromArgb(183,145,244),Color.FromArgb(112,203,180),Color.FromArgb(194,218,243),Color.FromArgb(190,212,230),Color.FromArgb(209,221,226),Color.FromArgb(242,177,166),Color.FromArgb(244,181,79),Color.FromArgb(221,188,160),Color.FromArgb(163,216,192),Color.FromArgb(153,187,204),Color.FromArgb(233,162,132)};
+    public static readonly Color[] Edges={Color.FromArgb(36,42,50),Color.FromArgb(220,227,237),Color.FromArgb(74,244,226),Color.FromArgb(136,50,91),Color.FromArgb(22,94,78),Color.FromArgb(62,52,55),Color.FromArgb(136,55,27),Color.FromArgb(15,50,108),Color.FromArgb(88,67,33),Color.FromArgb(71,43,123),Color.FromArgb(32,91,78),Color.FromArgb(48,77,117),Color.FromArgb(60,81,103),Color.FromArgb(53,67,82),Color.FromArgb(132,64,67),Color.FromArgb(118,75,30),Color.FromArgb(95,65,47),Color.FromArgb(48,102,82),Color.FromArgb(50,85,106),Color.FromArgb(119,61,43)};
+    public static readonly Color?[] CustomColors=new Color?[20];
+    public static Color Fill(int s) { return CustomColors[s] ?? Fills[s]; }
+    public static Color Edge(int s) { Color c=Fill(s); return !CustomColors[s].HasValue ? Edges[s] : c.GetBrightness()<0.28f ? Color.FromArgb(231,237,233) : Color.FromArgb(c.R/3,c.G/3,c.B/3); }
+    public static Color Detail(int s,Color original) { Color c=Fill(s); return !CustomColors[s].HasValue ? original : Color.FromArgb((c.R+255)/2,(c.G+255)/2,(c.B+255)/2); }
+    public static string ColorsPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MouseStudio","colors.txt"); } }
+    public static void LoadColors() { if(!File.Exists(ColorsPath)) return; try { string[] lines=File.ReadAllLines(ColorsPath); for(int i=0;i<Math.Min(lines.Length,CustomColors.Length);i++) { int n; if(int.TryParse(lines[i],out n)) CustomColors[i]=Color.FromArgb(255,Color.FromArgb(n)); } } catch(IOException) { } catch(UnauthorizedAccessException) { } }
+    public static void SaveColors() { Directory.CreateDirectory(Path.GetDirectoryName(ColorsPath)); string[] lines=new string[CustomColors.Length]; for(int i=0;i<lines.Length;i++) lines[i]=CustomColors[i].HasValue ? CustomColors[i].Value.ToArgb().ToString() : "default"; File.WriteAllLines(ColorsPath+".tmp",lines); if(File.Exists(ColorsPath)) File.Replace(ColorsPath+".tmp",ColorsPath,null); else File.Move(ColorsPath+".tmp",ColorsPath); }
     static PointF[] Points(params float[] a) { PointF[] p=new PointF[a.Length/2]; for(int i=0;i<p.Length;i++) p[i]=new PointF(a[i*2],a[i*2+1]); return p; }
     static void Poly(Graphics g,Brush b,Pen p,params float[] a) { var pts=Points(a); g.FillPolygon(b,pts); g.DrawPolygon(p,pts); }
     public static Point Hotspot(int size,uint role) {
@@ -113,47 +120,70 @@ static class Art {
         using(Graphics g=Graphics.FromImage(b)) {
             g.Clear(Color.Transparent); g.SmoothingMode=s==5 ? SmoothingMode.None:SmoothingMode.AntiAlias;
             g.ScaleTransform(size/64f,size/64f);
-            using(var fill=new SolidBrush(Fills[s])) using(var pen=new Pen(Edges[s],s==5?3:2.6f)) {
+            using(var fill=new SolidBrush(Fill(s))) using(var pen=new Pen(Edge(s),s==5?2:2.6f)) {
                 pen.LineJoin=LineJoin.Round; pen.StartCap=LineCap.Round; pen.EndCap=LineCap.Round;
                 if(role==32512 || role==32650 || role==32651) {
                     switch(s) {
                         case 0: Poly(g,fill,pen,5,4,5,48,17,37,27,58,36,54,26,34,43,34); break;
                         case 1: Poly(g,fill,pen,5,4,12,52,23,37,43,31); break;
                         case 2:
-                            using(var glow=new Pen(Color.FromArgb(75,74,244,226),7)) g.DrawPolygon(glow,Points(5,4,8,49,20,35,31,55,37,51,26,31,45,30));
+                            using(var glow=new Pen(Color.FromArgb(75,Edge(s)),7)) g.DrawPolygon(glow,Points(5,4,8,49,20,35,31,55,37,51,26,31,45,30));
                             Poly(g,fill,pen,5,4,8,49,20,35,31,55,37,51,26,31,45,30);
-                            using(var line=new Pen(Color.FromArgb(239,86,228),2)) g.DrawLine(line,13,17,17,32); break;
+                            using(var line=new Pen(Detail(s,Color.FromArgb(239,86,228)),2)) g.DrawLine(line,13,17,17,32); break;
                         case 3:
                             Poly(g,fill,pen,5,4,7,48,18,37,28,56,36,51,26,33,44,32);
-                            using(var pink=new SolidBrush(Color.FromArgb(217,67,128))) { g.FillEllipse(pink,21,20,8,8); g.FillEllipse(pink,27,20,8,8); g.FillPolygon(pink,Points(21,24,35,24,28,33)); } break;
+                            using(var pink=new SolidBrush(Edge(s))) { g.FillEllipse(pink,21,20,8,8); g.FillEllipse(pink,27,20,8,8); g.FillPolygon(pink,Points(21,24,35,24,28,33)); } break;
                         case 4:
                             using(var path=new GraphicsPath()) { path.AddBezier(5,4,46,9,53,39,24,36); path.AddLine(24,36,33,55); path.AddLine(33,55,25,58); path.AddLine(25,58,16,36); path.AddBezier(16,36,3,35,6,17,5,4); g.FillPath(fill,path); g.DrawPath(pen,path); }
                             g.DrawLine(pen,11,14,25,38); break;
-                        case 5: Poly(g,fill,pen,5,4,11,4,11,10,17,10,17,16,23,16,23,22,29,22,29,28,41,28,41,34,29,34,29,40,35,40,35,52,29,52,29,46,23,46,23,34,17,34,17,40,11,40,11,46,5,46); break;
+                        case 5:
+                            // A contiguous 16 x 16 bitmap silhouette, never a self-crossing polygon.
+                            string[] grid={"................",".#..............",".##.............",".#o#............",".#oo#...........",".#ooo#..........",".#oooo#.........",".#ooooo#........",".#oooooo#.......",".#oooo####......",".#oo#oo#........",".#o#.#o#........",".##..#oo#.......",".#....#o#.......","......###.......","................"};
+                            using(var edge=new SolidBrush(Edge(s))) for(int y=0;y<16;y++) for(int x=0;x<16;x++) if(grid[y][x]!='.') g.FillRectangle(grid[y][x]=='#'?edge:fill,x*4,y*4,4,4);
+                            break;
                         case 6: Poly(g,fill,pen,5,4,44,25,28,30,35,48,27,53,19,34,6,46);
-                            using(var hi=new Pen(Color.FromArgb(255,224,144),3)) g.DrawLine(hi,12,14,28,24); break;
+                            using(var hi=new Pen(Detail(s,Color.FromArgb(255,224,144)),3)) g.DrawLine(hi,12,14,28,24); break;
                         case 7: Poly(g,fill,pen,5,4,49,34,27,33,22,55);
-                            using(var hi=new Pen(Color.FromArgb(142,227,255),2)) g.DrawLine(hi,12,13,26,30); break;
+                            using(var hi=new Pen(Detail(s,Color.FromArgb(142,227,255)),2)) g.DrawLine(hi,12,13,26,30); break;
                         case 8:
-                            using(var gold=new LinearGradientBrush(new Point(5,4),new Point(40,52),Color.FromArgb(255,244,197),Fills[s])) Poly(g,gold,pen,5,4,8,49,19,37,29,56,36,51,26,32,44,32);
+                            using(var gold=new LinearGradientBrush(new Point(5,4),new Point(40,52),Detail(s,Color.FromArgb(255,244,197)),Fill(s))) Poly(g,gold,pen,5,4,8,49,19,37,29,56,36,51,26,32,44,32);
                             using(var inner=new Pen(Color.FromArgb(255,250,221),1.3f)) g.DrawLines(inner,Points(10,17,12,36,19,29,29,32)); break;
-                        default: Poly(g,fill,pen,5,4,39,23,27,29,36,49,27,54,19,34,8,45);
+                        case 9: Poly(g,fill,pen,5,4,39,23,27,29,36,49,27,54,19,34,8,45);
                             using(var star=new SolidBrush(Color.FromArgb(255,237,164))) Poly(g,star,pen,47,8,49,15,56,17,49,19,47,26,45,19,38,17,45,15); break;
+                        case 10:
+                            using(var path=new GraphicsPath()) { path.AddLines(Points(5,4,29,12,23,20)); path.AddBezier(23,20,55,14,54,47,35,49); path.AddBezier(35,49,24,50,36,61,52,54); path.AddBezier(52,54,29,69,16,47,30,40); path.AddBezier(30,40,44,36,39,24,20,28); path.AddLines(Points(20,28,16,38,5,4)); g.FillPath(fill,path); g.DrawPath(pen,path); } using(var ink=new SolidBrush(Edge(s))) g.FillEllipse(ink,17,14,3,3); break;
+                        case 11: Poly(g,fill,pen,5,4,57,24,34,33,25,56); g.DrawLines(pen,Points(5,4,34,33,25,56)); g.DrawLine(pen,5,4,47,26); break;
+                        case 12:
+                            using(var path=new GraphicsPath()) { path.AddBezier(5,4,48,3,54,30,37,40); path.AddLines(Points(37,40,28,38,29,46,21,42,20,51,12,43,5,4)); g.FillPath(fill,path); g.DrawPath(pen,path); } g.DrawLine(pen,9,10,43,55); g.DrawLine(pen,19,21,33,18); g.DrawLine(pen,27,31,39,27); break;
+                        case 13: Poly(g,fill,pen,5,4,29,16,43,36,36,43,16,29); g.DrawLine(pen,5,4,39,39); Poly(g,fill,pen,30,41,41,30,46,34,34,46); Poly(g,fill,pen,39,43,43,39,56,52,52,56); break;
+                        case 14:
+                            Poly(g,fill,pen,5,4,22,10,13,21);
+                            g.FillEllipse(fill,11,10,38,38); g.DrawEllipse(pen,11,10,38,38); g.DrawLine(pen,39,43,54,59); g.DrawLines(pen,Points(16,18,35,41,23,14)); g.DrawLine(pen,35,41,44,23); break;
+                        case 15:
+                            using(var path=new GraphicsPath()) { path.AddBezier(5,4,31,5,44,20,39,37); path.AddLines(Points(39,37,57,36,48,48,37,56,36,39)); path.AddBezier(36,39,16,43,7,22,5,4); g.FillPath(fill,path); g.DrawPath(pen,path); } g.DrawArc(pen,9,9,22,22,-50,145); using(var ink=new SolidBrush(Edge(s))) g.FillEllipse(ink,15,14,4,4); break;
+                        case 16:
+                            Poly(g,fill,pen,5,4,26,14,43,9,46,29,51,39,45,51,31,57,16,50,11,35); g.DrawLine(pen,12,16,20,20); g.DrawLine(pen,35,20,40,16); g.DrawEllipse(pen,22,30,2,3); g.DrawEllipse(pen,36,30,2,3); g.DrawLines(pen,Points(27,38,30,40,33,38)); g.DrawLine(pen,10,37,20,39); g.DrawLine(pen,40,39,54,35); break;
+                        case 17:
+                            Poly(g,fill,pen,5,4,36,29,30,36);
+                            for(int n=0;n<5;n++) { double angle=n*Math.PI*2/5; float x=40+(float)Math.Cos(angle)*9, y=40+(float)Math.Sin(angle)*9; g.FillEllipse(fill,x-7,y-7,14,14); g.DrawEllipse(pen,x-7,y-7,14,14); } using(var ink=new SolidBrush(Edge(s))) g.FillEllipse(ink,36,36,8,8); break;
+                        case 18: Poly(g,fill,pen,5,4,54,40,36,38,43,56,25,42,9,48); using(var snow=new SolidBrush(Detail(s,Color.White))) Poly(g,snow,pen,5,4,25,19,19,20,20,27,12,23); g.DrawLine(pen,25,42,30,32); break;
+                        case 19:
+                            Poly(g,fill,pen,5,4,29,9,46,29,30,45,10,28); g.DrawLine(pen,29,9,10,28); Poly(g,fill,pen,13,32,10,49,25,41); Poly(g,fill,pen,34,13,50,11,43,26); g.FillEllipse(fill,23,22,12,12); g.DrawEllipse(pen,23,22,12,12); using(var fire=new SolidBrush(Detail(s,Color.FromArgb(255,216,112)))) Poly(g,fire,pen,37,40,54,57,44,53,40,55,35,44); break;
                     }
                     if(role==32650) { g.FillEllipse(fill,38,39,22,22); g.DrawArc(pen,41,42,16,16,-80,270); }
                     if(role==32651) { using(var f=new Font("Segoe UI",21,FontStyle.Bold,GraphicsUnit.Pixel)) g.DrawString("?",f,fill,37,30); }
                 } else if(role==32513) {
-                    using(var outer=new Pen(Edges[s],7)) using(var inner=new Pen(Fills[s],3)) { foreach(Pen p in new[]{outer,inner}) { g.DrawLine(p,32,9,32,55); g.DrawLine(p,22,9,42,9); g.DrawLine(p,22,55,42,55); } }
+                    using(var outer=new Pen(Edge(s),7)) using(var inner=new Pen(Fill(s),3)) { foreach(Pen p in new[]{outer,inner}) { g.DrawLine(p,32,9,32,55); g.DrawLine(p,22,9,42,9); g.DrawLine(p,22,55,42,55); } }
                 } else if(role==32514) {
-                    using(var p=new Pen(Edges[s],8)) g.DrawEllipse(p,12,12,40,40);
-                    using(var p=new Pen(Fills[s],5)) g.DrawArc(p,12,12,40,40,-90,285);
+                    using(var p=new Pen(Edge(s),8)) g.DrawEllipse(p,12,12,40,40);
+                    using(var p=new Pen(Fill(s),5)) g.DrawArc(p,12,12,40,40,-90,285);
                 } else if(role==32649) {
                     Poly(g,fill,pen,21,34,21,11,24,7,28,7,31,11,31,27,36,25,41,29,46,28,51,33,56,33,58,38,55,50,48,58,30,58,22,49,12,37,13,32,18,31);
                     g.DrawLine(pen,31,28,31,38); g.DrawLine(pen,41,30,41,40); g.DrawLine(pen,50,34,50,42);
                 } else if(role==32648) {
-                    g.FillEllipse(fill,9,9,46,46); g.DrawEllipse(pen,9,9,46,46); using(var p=new Pen(Edges[s],5)) g.DrawLine(p,16,16,48,48);
+                    g.FillEllipse(fill,9,9,46,46); g.DrawEllipse(pen,9,9,46,46); using(var p=new Pen(Edge(s),5)) g.DrawLine(p,16,16,48,48);
                 } else if(role==32515) {
-                    using(var outP=new Pen(Edges[s],6)) using(var inP=new Pen(Fills[s],2)) foreach(var p in new[]{outP,inP}) { g.DrawLine(p,32,6,32,58); g.DrawLine(p,6,32,58,32); }
+                    using(var outP=new Pen(Edge(s),6)) using(var inP=new Pen(Fill(s),2)) foreach(var p in new[]{outP,inP}) { g.DrawLine(p,32,6,32,58); g.DrawLine(p,6,32,58,32); }
                 } else if(role==32516) {
                     Poly(g,fill,pen,32,6,12,29,24,29,24,57,40,57,40,29,52,29);
                 } else {
@@ -173,8 +203,16 @@ static class Art {
 
 sealed class StyleCard : Control {
     public int Index; public bool Selected; bool hover;
-    readonly Font titleFont=new Font("Microsoft YaHei UI",10,FontStyle.Bold);
-    public StyleCard(int index) { Index=index; DoubleBuffered=true; TabStop=true; AccessibleName=Art.Names[index]; AccessibleRole=AccessibleRole.PushButton; Size=new Size(180,142); Cursor=Cursors.Hand; }
+    public readonly Button ColorButton=new Button();
+    public event EventHandler ColorRequested;
+    readonly Font titleFont=new Font("Microsoft YaHei UI",16,FontStyle.Bold,GraphicsUnit.Pixel);
+    public StyleCard(int index) {
+        Index=index; DoubleBuffered=true; TabStop=true; AccessibleName=Art.Names[index]; AccessibleRole=AccessibleRole.PushButton; Size=new Size(192,142); Cursor=Cursors.Hand;
+        Font=new Font("Microsoft YaHei UI",13,FontStyle.Regular,GraphicsUnit.Pixel);
+        ColorButton.SetBounds(153,36,27,27); ColorButton.Text=""; ColorButton.FlatStyle=FlatStyle.Flat; ColorButton.FlatAppearance.BorderColor=Color.FromArgb(155,165,156); ColorButton.AccessibleName="为"+Art.Names[index]+"选择颜色";
+        ColorButton.Click+=delegate { if(ColorRequested!=null) ColorRequested(this,EventArgs.Empty); }; Controls.Add(ColorButton); RefreshColor();
+    }
+    public void RefreshColor() { ColorButton.BackColor=Art.Fill(Index); Invalidate(); }
     protected override void OnMouseEnter(EventArgs e) { hover=true; Invalidate(); base.OnMouseEnter(e); }
     protected override void OnMouseLeave(EventArgs e) { hover=false; Invalidate(); base.OnMouseLeave(e); }
     protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
@@ -184,10 +222,10 @@ sealed class StyleCard : Control {
         Graphics g=e.Graphics; g.SmoothingMode=SmoothingMode.AntiAlias;
         using(var bg=new SolidBrush(Selected?Color.FromArgb(235,246,241):hover?Color.FromArgb(246,248,246):Color.White)) g.FillRectangle(bg,0,0,Width,Height);
         using(var p=new Pen(Selected?MainForm.Green:Color.FromArgb(225,229,225),Selected?2:1)) g.DrawRectangle(p,1,1,Width-3,Height-3);
-        using(var b=Art.Render(Index,56,32512)) g.DrawImageUnscaled(b,Width/2-24,12);
+        using(var b=Art.Render(Index,64,32512)) g.DrawImageUnscaled(b,Width/2-32,8);
         TextRenderer.DrawText(g,Art.Names[Index],titleFont,new Rectangle(0,80,Width,23),MainForm.Ink,TextFormatFlags.HorizontalCenter);
         TextRenderer.DrawText(g,Art.Tags[Index],Font,new Rectangle(0,107,Width,23),MainForm.Muted,TextFormatFlags.HorizontalCenter);
-        if(Selected) { using(var b=new SolidBrush(MainForm.Green)) g.FillEllipse(b,Width-23,9,13,13); }
+        if(Selected) { using(var b=new SolidBrush(MainForm.Green)) g.FillEllipse(b,10,10,9,9); }
         if(Focused) ControlPaint.DrawFocusRectangle(g,new Rectangle(5,5,Width-10,Height-10));
     }
     protected override void Dispose(bool disposing) { if(disposing) titleFont.Dispose(); base.Dispose(disposing); }
@@ -211,37 +249,49 @@ sealed class MainForm : Form {
     readonly Preview preview=new Preview();
     readonly System.Windows.Forms.Timer debounce=new System.Windows.Forms.Timer();
     readonly NotifyIcon tray=new NotifyIcon();
+    readonly Button previousPage=new Button(), nextPage=new Button();
+    readonly Label pageLabel=new Label();
+    readonly ToolTip tips=new ToolTip();
+    readonly ContextMenuStrip palette=new ContextMenuStrip();
+    int page;
     int selected=-1; bool initializing=true, quitting;
     public MainForm(MouseSession s) {
-        session=s; Text="指针工坊 · Mouse Studio"; ClientSize=new Size(1060,790); MinimumSize=new Size(1090,835);
-        Font=new Font("Microsoft YaHei UI",9); BackColor=Color.FromArgb(247,248,244); ForeColor=Ink; AutoScaleMode=AutoScaleMode.Dpi; StartPosition=FormStartPosition.CenterScreen;
+        session=s; Text="指针工坊 · Mouse Studio 1.1"; ClientSize=new Size(1060,810); MinimumSize=new Size(800,640);
+        Font=new Font("Microsoft YaHei UI",14,FontStyle.Regular,GraphicsUnit.Pixel); BackColor=Color.FromArgb(247,248,244); ForeColor=Ink; AutoScaleMode=AutoScaleMode.Dpi; StartPosition=FormStartPosition.CenterScreen;
         using(var b=Art.Render(4,64,32512)) { IntPtr h=b.GetHicon(); try { Icon=(Icon)Icon.FromHandle(h).Clone(); } finally { Native.DestroyIcon(h); } }
         var root=new Panel { Dock=DockStyle.Fill,AutoScroll=true,Padding=new Padding(32) }; Controls.Add(root);
         Label brand=TextLabel("MOUSE STUDIO   /   指针工坊",32,22,650,25,10,FontStyle.Bold); brand.ForeColor=Green; root.Controls.Add(brand);
         root.Controls.Add(TextLabel("让每一次移动，都有你的风格。",30,51,940,59,19,FontStyle.Bold));
-        root.Controls.Add(TextLabel("10 套原创指针  ·  系统全局生效  ·  随时恢复",33,110,720,28,10,FontStyle.Regular));
+        root.Controls.Add(TextLabel("20 款指针  ·  独立配色  ·  系统全局生效  ·  随时恢复",33,110,720,28,10,FontStyle.Regular));
         root.Controls.Add(TextLabel("01   选择你的指针",32,159,500,28,12,FontStyle.Bold));
-        root.Controls.Add(TextLabel("点击即应用",887,161,150,24,9,FontStyle.Regular));
-        for(int i=0;i<10;i++) {
-            var c=new StyleCard(i) { Location=new Point(32+(i%5)*201,202+(i/5)*154),Width=192 };
+        previousPage.SetBounds(755,154,76,33); previousPage.Text="上一页"; nextPage.SetBounds(952,154,76,33); nextPage.Text="下一页";
+        pageLabel.SetBounds(837,154,109,33); pageLabel.TextAlign=ContentAlignment.MiddleCenter; root.Controls.Add(pageLabel);
+        foreach(var b in new[]{previousPage,nextPage}) { b.FlatStyle=FlatStyle.Flat; b.FlatAppearance.BorderColor=Color.FromArgb(210,221,213); root.Controls.Add(b); }
+        previousPage.Click+=delegate { SetPage(page-1); }; nextPage.Click+=delegate { SetPage(page+1); };
+        for(int i=0;i<20;i++) {
+            var c=new StyleCard(i) { Location=new Point(32+(i%5)*201,202+((i%10)/5)*154),Width=192 };
             c.Click+=delegate(object sender,EventArgs e) { var card=(StyleCard)sender; selected=card.Index; ApplyStyle(); };
+            c.ColorRequested+=delegate(object sender,EventArgs e) { OpenPalette((StyleCard)sender); };
+            tips.SetToolTip(c.ColorButton,"为「"+Art.Names[i]+"」选择颜色");
             cards.Add(c); root.Controls.Add(c);
         }
-        var controlsPanel=new Panel { Location=new Point(32,523),Size=new Size(996,181),BackColor=Color.White }; root.Controls.Add(controlsPanel);
-        controlsPanel.Controls.Add(TextLabel("02   指针大小",20,17,220,26,12,FontStyle.Bold));
-        sizeValue.SetBounds(236,18,120,24); sizeValue.TextAlign=ContentAlignment.MiddleRight; controlsPanel.Controls.Add(sizeValue);
-        ConfigureBar(sizeBar,24,96,40,16,61,344); sizeBar.SmallChange=1; sizeBar.LargeChange=8; controlsPanel.Controls.Add(sizeBar);
-        controlsPanel.Controls.Add(TextLabel("小",23,109,40,20,9,FontStyle.Regular)); controlsPanel.Controls.Add(TextLabel("大",322,109,40,20,9,FontStyle.Regular));
-        controlsPanel.Controls.Add(TextLabel("选择风格后，拖动即可实时调整",23,143,350,22,9,FontStyle.Regular));
-        preview.SetBounds(379,22,143,137); controlsPanel.Controls.Add(preview);
-        controlsPanel.Controls.Add(TextLabel("03   鼠标灵敏度",559,17,250,26,12,FontStyle.Bold));
-        speedValue.SetBounds(852,18,114,24); speedValue.TextAlign=ContentAlignment.MiddleRight; controlsPanel.Controls.Add(speedValue);
-        ConfigureBar(speedBar,1,20,Native.Speed,553,61,418); controlsPanel.Controls.Add(speedBar);
-        controlsPanel.Controls.Add(TextLabel("慢",559,109,40,20,9,FontStyle.Regular)); controlsPanel.Controls.Add(TextLabel("快",936,109,40,20,9,FontStyle.Regular));
-        controlsPanel.Controls.Add(TextLabel("调整 Windows 指针速度，非鼠标硬件 DPI",559,143,420,22,9,FontStyle.Regular));
-        status.SetBounds(33,719,690,28); status.ForeColor=Green; status.Text="准备就绪 · 当前使用原有系统设置"; root.Controls.Add(status);
-        root.Controls.Add(TextLabel("关闭窗口后驻留托盘；从托盘退出会恢复原设置。",33,753,720,22,9,FontStyle.Regular));
-        var restore=new Button {Text="恢复原设置",Location=new Point(851,724),Size=new Size(176,43),FlatStyle=FlatStyle.Flat,BackColor=Green,ForeColor=Color.White}; restore.FlatAppearance.BorderSize=0; restore.Click+=delegate { Restore(); }; root.Controls.Add(restore);
+        SetPage(0);
+        var controlsPanel=new Panel { Location=new Point(32,523),Size=new Size(996,199),BackColor=Color.White }; root.Controls.Add(controlsPanel);
+        controlsPanel.Controls.Add(TextLabel("02   指针大小",20,18,220,40,12,FontStyle.Bold));
+        sizeValue.SetBounds(236,20,120,32); sizeValue.TextAlign=ContentAlignment.MiddleRight; controlsPanel.Controls.Add(sizeValue);
+        ConfigureBar(sizeBar,24,96,40,16,78,344); sizeBar.SmallChange=1; sizeBar.LargeChange=8; controlsPanel.Controls.Add(sizeBar);
+        controlsPanel.Controls.Add(TextLabel("小",23,127,40,22,9,FontStyle.Regular)); controlsPanel.Controls.Add(TextLabel("大",322,127,40,22,9,FontStyle.Regular));
+        controlsPanel.Controls.Add(TextLabel("拖动即应用；首次默认使用「素笺」",23,163,350,24,9,FontStyle.Regular));
+        preview.SetBounds(379,26,143,147); controlsPanel.Controls.Add(preview);
+        controlsPanel.Controls.Add(TextLabel("03   鼠标灵敏度",559,18,250,40,12,FontStyle.Bold));
+        speedValue.SetBounds(852,20,114,32); speedValue.TextAlign=ContentAlignment.MiddleRight; controlsPanel.Controls.Add(speedValue);
+        ConfigureBar(speedBar,1,20,Native.Speed,553,78,418); controlsPanel.Controls.Add(speedBar);
+        controlsPanel.Controls.Add(TextLabel("慢",559,127,40,22,9,FontStyle.Regular)); controlsPanel.Controls.Add(TextLabel("快",936,127,40,22,9,FontStyle.Regular));
+        controlsPanel.Controls.Add(TextLabel("Windows 原生 20 档 · 非鼠标硬件 DPI",559,163,420,24,9,FontStyle.Regular));
+        tips.SetToolTip(sizeBar,"指针大小：24–96 px"); tips.SetToolTip(speedBar,"Windows 原生速度：1–20 档");
+        status.SetBounds(33,739,760,28); status.ForeColor=Green; status.Text="准备就绪 · 点击卡片应用，右侧色块选择颜色"; root.Controls.Add(status);
+        root.Controls.Add(TextLabel("关闭窗口后驻留托盘；Ctrl+Q 退出并恢复原设置。",33,775,720,22,9,FontStyle.Regular));
+        var restore=new Button {Text="恢复原设置",Location=new Point(851,744),Size=new Size(176,43),FlatStyle=FlatStyle.Flat,BackColor=Green,ForeColor=Color.White}; restore.FlatAppearance.BorderSize=0; restore.Click+=delegate { Restore(); }; root.Controls.Add(restore);
         var menu=new ContextMenuStrip(); menu.Items.Add("打开指针工坊",null,delegate { ShowWindow(); }); menu.Items.Add("恢复原设置",null,delegate { Restore(); }); menu.Items.Add(new ToolStripSeparator()); menu.Items.Add("退出并恢复",null,delegate { Quit(); });
         tray.Icon=Icon; tray.Text="指针工坊 · 双击打开"; tray.ContextMenuStrip=menu; tray.DoubleClick+=delegate { ShowWindow(); };
         debounce.Interval=100; debounce.Tick+=delegate { debounce.Stop(); ApplyStyle(); };
@@ -251,10 +301,27 @@ sealed class MainForm : Form {
             if(!quitting && e.CloseReason==CloseReason.UserClosing) { e.Cancel=true; Hide(); tray.Visible=true; tray.ShowBalloonTip(2500,"指针工坊仍在运行","双击托盘图标重新打开；右键可退出并恢复原设置。",ToolTipIcon.Info); }
             else { debounce.Stop(); try { session.Restore(); } catch(Exception ex) { if(e.CloseReason==CloseReason.UserClosing) { e.Cancel=true; quitting=false; Error(ex); } } }
         };
-        FormClosed+=delegate { tray.Dispose(); debounce.Dispose(); };
+        FormClosed+=delegate { tray.Dispose(); debounce.Dispose(); tips.Dispose(); ClearPalette(); palette.Dispose(); };
         UpdateValues(); initializing=false;
     }
-    static Label TextLabel(string text,int x,int y,int w,int h,float size,FontStyle weight) { return new Label {Text=text,Location=new Point(x,y),Size=new Size(w,h),Font=new Font("Microsoft YaHei UI",size,weight),ForeColor=weight==FontStyle.Bold?Ink:Muted}; }
+    static Label TextLabel(string text,int x,int y,int w,int h,float size,FontStyle weight) { return new Label {Text=text,Location=new Point(x,y),Size=new Size(w,h),Font=new Font("Microsoft YaHei UI",size*1.5f,weight,GraphicsUnit.Pixel),ForeColor=weight==FontStyle.Bold?Ink:Muted}; }
+    public void SetPage(int value) { page=Math.Max(0,Math.Min(1,value)); foreach(var c in cards) c.Visible=c.Index/10==page; pageLabel.Text="第 "+(page+1)+" / 2 页"; previousPage.Enabled=page>0; nextPage.Enabled=page<1; }
+    void ClearPalette() { while(palette.Items.Count>0) { var item=palette.Items[0]; palette.Items.RemoveAt(0); if(item.Image!=null) item.Image.Dispose(); item.Dispose(); } }
+    void OpenPalette(StyleCard card) {
+        ClearPalette();
+        Color[] colors={Color.White,Color.FromArgb(40,45,51),Color.FromArgb(233,108,128),Color.FromArgb(243,166,81),Color.FromArgb(226,202,123),Color.FromArgb(104,191,143),Color.FromArgb(83,182,188),Color.FromArgb(91,147,222),Color.FromArgb(175,138,214),Color.FromArgb(158,139,121)};
+        string[] labels={"月白","墨色","胭脂","杏黄","流金","竹青","碧水","晴空","藤花","茶褐"};
+        for(int i=0;i<colors.Length;i++) { Color color=colors[i]; var swatch=new Bitmap(18,18); using(var g=Graphics.FromImage(swatch)) { g.Clear(color); g.DrawRectangle(Pens.Gray,0,0,17,17); } var item=new ToolStripMenuItem(labels[i],swatch); item.Click+=delegate { ChangeColor(card.Index,color,true); }; palette.Items.Add(item); }
+        palette.Items.Add(new ToolStripSeparator());
+        palette.Items.Add("自选颜色…",null,delegate { using(var dialog=new ColorDialog { Color=Art.Fill(card.Index),FullOpen=true }) if(dialog.ShowDialog(this)==DialogResult.OK) ChangeColor(card.Index,dialog.Color,true); });
+        palette.Items.Add("恢复这款默认配色",null,delegate { ChangeColor(card.Index,null,true); });
+        palette.Show(card.ColorButton,new Point(0,card.ColorButton.Height));
+    }
+    void ChangeColor(int index,Color? color,bool persist) {
+        Color? previous=Art.CustomColors[index];
+        try { Art.CustomColors[index]=color; if(persist) Art.SaveColors(); cards[index].RefreshColor(); if(selected==index) ApplyStyle(); else status.Text="已保存「"+Art.Names[index]+"」配色 · 点击卡片应用"; preview.Invalidate(); }
+        catch(Exception ex) { Art.CustomColors[index]=previous; cards[index].RefreshColor(); Error(ex); }
+    }
     static void ConfigureBar(TrackBar b,int min,int max,int value,int x,int y,int width) { b.Minimum=min; b.Maximum=max; b.Value=value; b.SetBounds(x,y,width,42); b.TickStyle=TickStyle.None; b.BackColor=Color.White; }
     void UpdateValues() { sizeValue.Text=sizeBar.Value+" px"; speedValue.Text=speedBar.Value+" / 20"; preview.CursorSize=sizeBar.Value; preview.Style=Math.Max(0,selected); preview.Invalidate(); }
     void ApplyStyle() {
@@ -268,10 +335,24 @@ sealed class MainForm : Form {
     }
     void ShowWindow() { Show(); WindowState=FormWindowState.Normal; Activate(); tray.Visible=false; }
     void Quit() { quitting=true; Close(); }
+    protected override bool ProcessCmdKey(ref Message msg,Keys keyData) { if(keyData==(Keys.Control|Keys.Q)) { Quit(); return true; } return base.ProcessCmdKey(ref msg,keyData); }
     public void SavePreview(string path) { using(var b=new Bitmap(Width,Height)) { DrawToBitmap(b,new Rectangle(0,0,Width,Height)); b.Save(path,ImageFormat.Png); } }
     public void ClosePreview() { quitting=true; Close(); }
     public void VerifyControls() {
         Show(); Application.DoEvents();
+        if(cards.FindAll(delegate(StyleCard c){return c.Visible;}).Count!=10) throw new Exception("First page must have 10 styles");
+        InvokeOnClick(nextPage,EventArgs.Empty);
+        if(!cards[19].Visible || cards[0].Visible || nextPage.Enabled) throw new Exception("Second page navigation failed");
+        InvokeOnClick(cards[19],EventArgs.Empty);
+        if(!cards[19].Selected) throw new Exception("New style click failed");
+        Color? originalColor=Art.CustomColors[19]; Color other=Art.Fill(0);
+        string beforeColor=Program.Fingerprint(32512);
+        ChangeColor(19,Color.Crimson,false);
+        if(Art.Fill(19)!=Color.Crimson || Art.Fill(0)!=other) throw new Exception("Independent color selection failed");
+        if(Program.Fingerprint(32512)==beforeColor) throw new Exception("Color did not reach actual system cursor");
+        ChangeColor(19,originalColor,false);
+        InvokeOnClick(previousPage,EventArgs.Empty);
+        if(!cards[0].Visible || cards[19].Visible || !cards[19].Selected) throw new Exception("Paging changed selection");
         InvokeOnClick(cards[6],EventArgs.Empty);
         if(!cards[6].Selected || !session.Active) throw new Exception("Style card click did not apply");
         sizeBar.Value=72;
@@ -290,6 +371,15 @@ sealed class MainForm : Form {
 
 static class Program {
     [STAThread] static int Main(string[] args) {
+        // Rendering is read-only and may run while the user's existing app is in the tray.
+        if(args.Length>0 && args[0]=="--preview") {
+            Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
+            using(var session=new MouseSession()) using(var form=new MainForm(session)) {
+                form.Show(); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview.png"));
+                form.SetPage(1); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview-page2.png")); form.ClosePreview();
+            }
+            return 0;
+        }
         bool created;
         using(var mutex=new Mutex(true,"Local\\MouseStudio.Desktop.Session",out created)) {
             if(!created) { MessageBox.Show("指针工坊已在运行，请双击系统托盘中的绿色指针图标。","指针工坊"); return 0; }
@@ -297,10 +387,10 @@ static class Program {
                 Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
                 if(args.Length>0 && args[0]=="--restore") { MouseSession.Recover(); return 0; }
                 if(args.Length>0 && args[0]=="--self-test") { SelfTest(); return 0; }
+                Art.LoadColors();
                 if(File.Exists(MouseSession.RecoveryPath)) MouseSession.Recover();
                 using(var session=new MouseSession()) using(var form=new MainForm(session)) {
-                    if(args.Length>0 && args[0]=="--preview") { form.Show(); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview.png")); form.ClosePreview(); }
-                    else Application.Run(form);
+                    Application.Run(form);
                 }
                 return 0;
             } catch(Exception ex) {
@@ -316,7 +406,7 @@ static class Program {
         if(File.Exists(MouseSession.RecoveryPath)) throw new Exception("Pending recovery must be resolved before tests.");
         using(var s=new MouseSession()) {
             try {
-                for(int style=0;style<10;style++) foreach(int size in new[]{24,40,96}) {
+                for(int style=0;style<20;style++) foreach(int size in new[]{24,40,96}) {
                     s.Apply(style,size);
                     foreach(uint role in Native.Roles) {
                         Native.IconInfo info; Native.Check(Native.GetIconInfo(Native.LoadCursor(IntPtr.Zero,new IntPtr(role)),out info));
@@ -340,10 +430,10 @@ static class Program {
         }
         foreach(uint id in Native.Roles) if(fingerprints[id]!=Fingerprint(id)) throw new Exception("UI test did not restore cursor: "+id);
         if(Native.Speed!=original) throw new Exception("UI test did not restore speed");
-        lines.Add("PASS UI card click, debounced size slider, speed slider, restore, close-to-tray, reopen and exit");
+        lines.Add("PASS UI 2 pages / 20 styles, page selection retention, per-style color isolation, size slider, speed slider, restore, tray and exit");
         File.WriteAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-results.txt"),lines);
     }
-    static string Fingerprint(uint role) {
+    public static string Fingerprint(uint role) {
         Native.IconInfo info; Native.Check(Native.GetIconInfo(Native.LoadCursor(IntPtr.Zero,new IntPtr(role)),out info));
         try {
             using(var stream=new MemoryStream()) {
