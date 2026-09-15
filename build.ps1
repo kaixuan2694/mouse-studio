@@ -9,6 +9,6 @@ try {
         & .\tools\IconBuilder.exe assets
         if ($LASTEXITCODE -ne 0) { throw 'Icon generation failed' }
     }
-    & $compiler /nologo /target:winexe /platform:anycpu /optimize+ /win32manifest:app.manifest /win32icon:assets\mouse-studio.ico /resource:assets\mouse-studio.ico,MouseStudio.AppIcon "/out:$OutputPath" /reference:System.Drawing.dll /reference:System.Windows.Forms.dll MouseStudio.cs
+    & $compiler /nologo /target:winexe /platform:anycpu /optimize+ /win32manifest:app.manifest /win32icon:assets\mouse-studio.ico /resource:assets\mouse-studio.ico,MouseStudio.AppIcon "/out:$OutputPath" /reference:System.Drawing.dll /reference:System.Windows.Forms.dll MouseStudio.cs Preferences.cs ResponsiveLayout.cs BehaviorTests.cs
     if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
 } finally { Pop-Location }

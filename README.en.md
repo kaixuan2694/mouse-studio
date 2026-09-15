@@ -24,6 +24,9 @@ Built for Windows 10 / 11 with .NET Framework 4.x. No installation, administrato
 - **Pointer size:** adjust the cursor canvas from 24 to 96 px while preserving its click hotspot.
 - **Mouse sensitivity:** adjust all 20 native Windows pointer-speed levels while preserving the existing acceleration setting.
 - **14 system cursor roles:** includes normal selection, text selection, links, resizing, moving, busy, unavailable, and help states.
+- **Optional launch at sign-in:** enable the startup checkbox to launch in the system tray when the current user signs in to Windows and apply the saved cursor configuration. Unchecking it removes the startup entry.
+- **Automatic profile memory:** style, colors, size, and speed are saved and reapplied on subsequent launches. Exiting restores the current Windows session while keeping your preferences. Clicking Restore explicitly stops reapplying that configuration until you make another adjustment.
+- **Responsive window layout:** cards, page controls, preview, and sliders expand with the window. Small windows provide vertical scrolling.
 - **Tray support and recovery:** close the window to keep the app running in the notification area. With `Ctrl+Q` or the tray menu, exit, reload the saved Windows cursor theme, and restore the mouse speed captured at startup. Recovery avoids potentially invalid temporary cursor copies.
 - **A consistent app icon:** a forest-green tile with a light pointer and a small golden star, embedded in the EXE at nine resolutions for Explorer, desktop shortcuts, the window, and the tray.
 
@@ -35,6 +38,7 @@ Built for Windows 10 / 11 with .NET Framework 4.x. No installation, administrato
 4. Drag **指针大小** to resize the pointer, and **鼠标灵敏度** to change its speed.
 5. Click **恢复原设置** to reload the saved Windows cursor theme and restore the speed captured when the app started. Saved color preferences are kept. Unsaved temporary cursor changes from other apps are not restored.
 6. Closing the window sends the app to the system tray. Double-click its icon to reopen it, or right-click and choose **退出并恢复** to exit and restore. You can also press `Ctrl+Q` in the app window.
+7. Check **开机自启，自动应用上次配置** to launch at Windows sign-in with your saved settings. Startup is off by default. Manual launches also restore the last saved profile. On your first launch of this version, select a cursor once to save a profile.
 
 Before upgrading, exit the old version using its tray menu, then open the new EXE.
 
@@ -43,9 +47,9 @@ Before upgrading, exit the old version using its tray menu, then open the new EX
 - Sensitivity changes **Windows pointer speed**, not the mouse's hardware DPI.
 - Software that draws its own cursor or consumes raw mouse input may not follow Windows cursor or speed settings.
 - Busy indicators are static rings in this version.
-- The app does not install a permanent cursor theme or configure automatic startup. Reopen it and choose a style after signing out or restarting Windows.
+- The app does not install a permanent cursor theme. Automatic startup is opt-in and uses a current-user Windows Run entry. Keep the EXE at a stable path; a startup entry disabled in Windows Startup Apps must be enabled there to run at sign-in.
 - If the process is forcibly terminated, reopening the app first reloads the saved Windows cursor theme and restores the backed-up speed. With the app stopped, `MouseStudio.exe --restore` does the same. Unsaved temporary cursor changes made by other apps cannot be recovered through this fallback.
-- The app stores recovery information and per-style color preferences in `%LOCALAPPDATA%\MouseStudio`. It does not collect mouse movement or send data over the network.
+- The app stores recovery information, the saved profile, and per-style color preferences in `%LOCALAPPDATA%\MouseStudio`. It does not collect mouse movement or send data over the network.
 
 ## Build from source
 
@@ -80,6 +84,8 @@ Get-Content .\test-results.txt
 Exit any running instance before running `--self-test`. This test temporarily changes the computer's mouse settings and attempts restoration in a `finally` block, including when a test fails.
 
 Coverage includes 20 styles × 3 sizes × 14 system cursor roles, hotspot checks, speed readback, comparison of the original and restored cursor images and masks, page navigation, independent colors, actual system color updates, sliders, tray behavior, and exit.
+
+Additional checks cover profile reloads, logon-style tray startup, pending slider changes at exit, startup-entry removal, malformed preferences, and responsive layouts at widths of 800, 1080, and 1600 px. Test preferences and registry entries are isolated from the user's settings. The logon launch path is simulated in a separate process; the computer is not rebooted for testing.
 
 Run `tools/test-exit.ps1` for a separate-process exit regression test. It verifies actual cursor rendering after the app process has ended, including an initially invisible cursor, normal exit, tray exit, a pending size update, exceptional cleanup, and repeated restoration. It also checks the active cursor returned by `GetCursorInfo`. Exit running instances first; the test temporarily changes mouse settings and reloads the saved theme on completion.
 

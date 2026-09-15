@@ -46,7 +46,7 @@ static class ExitRegression {
         try {
             if(!SystemParametersInfo(0x57,0,IntPtr.Zero,0)) throw new Exception("Cannot reload system cursor theme");
             string[] before=new string[Roles.Length]; for(int i=0;i<Roles.Length;i++) before[i]=Fingerprint(assembly,Roles[i]);
-            foreach(string mode in new[]{"blank-start","quit","restore-quit","tray-quit","pending-quit","dispose","restore-twice"}) {
+            foreach(string mode in new[]{"blank-start","quit","restore-quit","tray-quit","pending-quit","dispose","restore-twice","startup"}) {
                 var start=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"\""+target+"\" "+mode) { UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden };
                 using(var p=Process.Start(start)) { if(!p.WaitForExit(15000)) { p.Kill(); throw new Exception("Child timed out: "+mode); } if(p.ExitCode!=0) throw new Exception("Child failed: "+mode); }
                 Thread.Sleep(100);
@@ -64,6 +64,13 @@ static class ExitRegression {
     }
     static void Child(Assembly assembly,string mode) {
         Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
+        string isolatedDirectory=null;
+        if(mode=="startup") {
+            isolatedDirectory=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"MouseStudioStartup-"+Guid.NewGuid().ToString("N"));
+            assembly.GetType("AppStorage").GetField("DirectoryPath").SetValue(null,isolatedDirectory);
+            Type profileType=assembly.GetType("SavedProfile"); object profile=Activator.CreateInstance(profileType);
+            profileType.GetField("Enabled").SetValue(profile,true); profileType.GetField("Style").SetValue(profile,19); profileType.GetField("Size").SetValue(profile,64); profileType.GetField("Speed").SetValue(profile,13); Invoke(profile,"Save");
+        }
         if(mode=="blank-start") {
             // A previous interrupted/custom cursor session may leave an invisible
             // cursor. It must never become the app's permanent restore baseline.
@@ -75,8 +82,14 @@ static class ExitRegression {
         if(mode=="dispose") { try { Invoke(session,"Apply",5,72); Invoke(session,"SetSpeed",13); } finally { ((IDisposable)session).Dispose(); } return; }
         using(var form=(Form)Activator.CreateInstance(assembly.GetType("MainForm"),new[]{session})) using(var timer=new System.Windows.Forms.Timer()) {
             int stage=0;
+            if(mode=="startup") { Invoke(form,"StartUserSession",false); Invoke(form,"StartMinimized"); }
             timer.Interval=150;
             timer.Tick+=delegate {
+                if(mode=="startup") {
+                    timer.Stop(); int startupSpeed=0; GetSpeed(0x70,0,ref startupSpeed,0);
+                    if(form.Visible || startupSpeed!=13) throw new Exception("Logon launch did not stay hidden with saved speed applied");
+                    CheckDisplayedCursor(); Invoke(form,"Quit"); return;
+                }
                 if(stage++==0) {
                     form.GetType().GetField("selected",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(form,5);
                     Invoke(form,"ApplyStyle"); Invoke(session,"SetSpeed",13); SetCursor(LoadCursor(IntPtr.Zero,new IntPtr(32512)));
@@ -84,8 +97,11 @@ static class ExitRegression {
                     if(mode=="pending-quit") { var bar=(TrackBar)form.GetType().GetField("sizeBar",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form); bar.Value=96; Invoke(form,"Quit"); }
                 } else { timer.Stop(); if(mode=="restore-quit" || mode=="restore-twice") { Invoke(form,"Restore"); CheckDisplayedCursor(); if(mode=="restore-twice") { Invoke(form,"Restore"); CheckDisplayedCursor(); } } Invoke(form,"Quit"); }
             };
-            form.Shown+=delegate { timer.Start(); };
-            try { Application.Run(form); } finally { ((IDisposable)session).Dispose(); }
+            if(mode=="startup") timer.Start(); else form.Shown+=delegate { timer.Start(); };
+            try { Application.Run(form); } finally {
+                ((IDisposable)session).Dispose();
+                if(isolatedDirectory!=null && System.IO.Directory.Exists(isolatedDirectory)) { foreach(string file in System.IO.Directory.GetFiles(isolatedDirectory)) System.IO.File.Delete(file); System.IO.Directory.Delete(isolatedDirectory); }
+            }
         }
     }
 }

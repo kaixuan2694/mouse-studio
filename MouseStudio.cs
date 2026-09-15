@@ -54,7 +54,7 @@ sealed class MouseSession : IDisposable {
     readonly int speed;
     bool dirty;
     public bool Active { get { return dirty; } }
-    public static string RecoveryPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MouseStudio","recovery.txt"); } }
+    public static string RecoveryPath { get { return Path.Combine(AppStorage.DirectoryPath,"recovery.txt"); } }
     public MouseSession() { speed=Native.Speed; }
     void BeforeChange() {
         if(dirty) return;
@@ -108,7 +108,7 @@ static class Art {
     public static Color Fill(int s) { return CustomColors[s] ?? Fills[s]; }
     public static Color Edge(int s) { Color c=Fill(s); return !CustomColors[s].HasValue ? Edges[s] : c.GetBrightness()<0.28f ? Color.FromArgb(231,237,233) : Color.FromArgb(c.R/3,c.G/3,c.B/3); }
     public static Color Detail(int s,Color original) { Color c=Fill(s); return !CustomColors[s].HasValue ? original : Color.FromArgb((c.R+255)/2,(c.G+255)/2,(c.B+255)/2); }
-    public static string ColorsPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MouseStudio","colors.txt"); } }
+    public static string ColorsPath { get { return Path.Combine(AppStorage.DirectoryPath,"colors.txt"); } }
     public static void LoadColors() { if(!File.Exists(ColorsPath)) return; try { string[] lines=File.ReadAllLines(ColorsPath); for(int i=0;i<Math.Min(lines.Length,CustomColors.Length);i++) { int n; if(int.TryParse(lines[i],out n)) CustomColors[i]=Color.FromArgb(255,Color.FromArgb(n)); } } catch(IOException) { } catch(UnauthorizedAccessException) { } }
     public static void SaveColors() { Directory.CreateDirectory(Path.GetDirectoryName(ColorsPath)); string[] lines=new string[CustomColors.Length]; for(int i=0;i<lines.Length;i++) lines[i]=CustomColors[i].HasValue ? CustomColors[i].Value.ToArgb().ToString() : "default"; File.WriteAllLines(ColorsPath+".tmp",lines); if(File.Exists(ColorsPath)) File.Replace(ColorsPath+".tmp",ColorsPath,null); else File.Move(ColorsPath+".tmp",ColorsPath); }
     static PointF[] Points(params float[] a) { PointF[] p=new PointF[a.Length/2]; for(int i=0;i<p.Length;i++) p[i]=new PointF(a[i*2],a[i*2+1]); return p; }
@@ -217,6 +217,7 @@ sealed class StyleCard : Control {
         ColorButton.Click+=delegate { if(ColorRequested!=null) ColorRequested(this,EventArgs.Empty); }; Controls.Add(ColorButton); RefreshColor();
     }
     public void RefreshColor() { ColorButton.BackColor=Art.Fill(Index); Invalidate(); }
+    protected override void OnResize(EventArgs e) { base.OnResize(e); if(ColorButton!=null) ColorButton.SetBounds(Math.Max(0,Width-40),Math.Max(12,(Height-64)/2-14),28,28); Invalidate(); }
     protected override void OnMouseEnter(EventArgs e) { hover=true; Invalidate(); base.OnMouseEnter(e); }
     protected override void OnMouseLeave(EventArgs e) { hover=false; Invalidate(); base.OnMouseLeave(e); }
     protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
@@ -226,9 +227,10 @@ sealed class StyleCard : Control {
         Graphics g=e.Graphics; g.SmoothingMode=SmoothingMode.AntiAlias;
         using(var bg=new SolidBrush(Selected?Color.FromArgb(235,246,241):hover?Color.FromArgb(246,248,246):Color.White)) g.FillRectangle(bg,0,0,Width,Height);
         using(var p=new Pen(Selected?MainForm.Green:Color.FromArgb(225,229,225),Selected?2:1)) g.DrawRectangle(p,1,1,Width-3,Height-3);
-        using(var b=Art.Render(Index,64,32512)) g.DrawImageUnscaled(b,Width/2-32,8);
-        TextRenderer.DrawText(g,Art.Names[Index],titleFont,new Rectangle(0,80,Width,23),MainForm.Ink,TextFormatFlags.HorizontalCenter);
-        TextRenderer.DrawText(g,Art.Tags[Index],Font,new Rectangle(0,107,Width,23),MainForm.Muted,TextFormatFlags.HorizontalCenter);
+        int artworkSize=Math.Max(32,Math.Min(96,Math.Min(Width-76,Height-76)));
+        using(var b=Art.Render(Index,artworkSize,32512)) g.DrawImageUnscaled(b,(Width-30-artworkSize)/2,Math.Max(8,(Height-64-artworkSize)/2));
+        TextRenderer.DrawText(g,Art.Names[Index],titleFont,new Rectangle(0,Height-60,Width,26),MainForm.Ink,TextFormatFlags.HorizontalCenter);
+        TextRenderer.DrawText(g,Art.Tags[Index],Font,new Rectangle(0,Height-32,Width,24),MainForm.Muted,TextFormatFlags.HorizontalCenter);
         if(Selected) { using(var b=new SolidBrush(MainForm.Green)) g.FillEllipse(b,10,10,9,9); }
         if(Focused) ControlPaint.DrawFocusRectangle(g,new Rectangle(5,5,Width-10,Height-10));
     }
@@ -244,7 +246,7 @@ sealed class Preview : Control {
     }
 }
 
-sealed class MainForm : Form {
+sealed partial class MainForm : Form {
     public static readonly Color Ink=Color.FromArgb(32,49,43), Muted=Color.FromArgb(113,126,117), Green=Color.FromArgb(30,111,79);
     readonly MouseSession session;
     readonly List<StyleCard> cards=new List<StyleCard>();
@@ -259,57 +261,31 @@ sealed class MainForm : Form {
     readonly ContextMenuStrip palette=new ContextMenuStrip();
     int page;
     int selected=-1; bool initializing=true, quitting;
+    bool persistChanges,hideOnStartup;
     public MainForm(MouseSession s) {
-        session=s; Text="指针工坊 · Mouse Studio 1.1.2"; ClientSize=new Size(1060,810); MinimumSize=new Size(800,640);
+        session=s; Text="指针工坊 · Mouse Studio 1.2.0"; ClientSize=new Size(1080,880); MinimumSize=new Size(800,600);
         Font=new Font("Microsoft YaHei UI",14,FontStyle.Regular,GraphicsUnit.Pixel); BackColor=Color.FromArgb(247,248,244); ForeColor=Ink; AutoScaleMode=AutoScaleMode.Dpi; StartPosition=FormStartPosition.CenterScreen;
         using(var stream=typeof(MainForm).Assembly.GetManifestResourceStream("MouseStudio.AppIcon")) using(var appIcon=new Icon(stream,32,32)) Icon=(Icon)appIcon.Clone();
-        var root=new Panel { Dock=DockStyle.Fill,AutoScroll=true,Padding=new Padding(32) }; Controls.Add(root);
-        Label brand=TextLabel("MOUSE STUDIO   /   指针工坊",32,22,650,25,10,FontStyle.Bold); brand.ForeColor=Green; root.Controls.Add(brand);
-        root.Controls.Add(TextLabel("让每一次移动，都有你的风格。",30,51,940,59,19,FontStyle.Bold));
-        root.Controls.Add(TextLabel("20 款指针  ·  独立配色  ·  系统全局生效  ·  随时恢复",33,110,720,28,10,FontStyle.Regular));
-        root.Controls.Add(TextLabel("01   选择你的指针",32,159,500,28,12,FontStyle.Bold));
-        previousPage.SetBounds(755,154,76,33); previousPage.Text="上一页"; nextPage.SetBounds(952,154,76,33); nextPage.Text="下一页";
-        pageLabel.SetBounds(837,154,109,33); pageLabel.TextAlign=ContentAlignment.MiddleCenter; root.Controls.Add(pageLabel);
-        foreach(var b in new[]{previousPage,nextPage}) { b.FlatStyle=FlatStyle.Flat; b.FlatAppearance.BorderColor=Color.FromArgb(210,221,213); root.Controls.Add(b); }
-        previousPage.Click+=delegate { SetPage(page-1); }; nextPage.Click+=delegate { SetPage(page+1); };
-        for(int i=0;i<20;i++) {
-            var c=new StyleCard(i) { Location=new Point(32+(i%5)*201,202+((i%10)/5)*154),Width=192 };
-            c.Click+=delegate(object sender,EventArgs e) { var card=(StyleCard)sender; selected=card.Index; ApplyStyle(); };
-            c.ColorRequested+=delegate(object sender,EventArgs e) { OpenPalette((StyleCard)sender); };
-            tips.SetToolTip(c.ColorButton,"为「"+Art.Names[i]+"」选择颜色");
-            cards.Add(c); root.Controls.Add(c);
-        }
-        SetPage(0);
-        var controlsPanel=new Panel { Location=new Point(32,523),Size=new Size(996,199),BackColor=Color.White }; root.Controls.Add(controlsPanel);
-        controlsPanel.Controls.Add(TextLabel("02   指针大小",20,18,220,40,12,FontStyle.Bold));
-        sizeValue.SetBounds(236,20,120,32); sizeValue.TextAlign=ContentAlignment.MiddleRight; controlsPanel.Controls.Add(sizeValue);
-        ConfigureBar(sizeBar,24,96,40,16,78,344); sizeBar.SmallChange=1; sizeBar.LargeChange=8; controlsPanel.Controls.Add(sizeBar);
-        controlsPanel.Controls.Add(TextLabel("小",23,127,40,22,9,FontStyle.Regular)); controlsPanel.Controls.Add(TextLabel("大",322,127,40,22,9,FontStyle.Regular));
-        controlsPanel.Controls.Add(TextLabel("拖动即应用；首次默认使用「素笺」",23,163,350,24,9,FontStyle.Regular));
-        preview.SetBounds(379,26,143,147); controlsPanel.Controls.Add(preview);
-        controlsPanel.Controls.Add(TextLabel("03   鼠标灵敏度",559,18,250,40,12,FontStyle.Bold));
-        speedValue.SetBounds(852,20,114,32); speedValue.TextAlign=ContentAlignment.MiddleRight; controlsPanel.Controls.Add(speedValue);
-        ConfigureBar(speedBar,1,20,Native.Speed,553,78,418); controlsPanel.Controls.Add(speedBar);
-        controlsPanel.Controls.Add(TextLabel("慢",559,127,40,22,9,FontStyle.Regular)); controlsPanel.Controls.Add(TextLabel("快",936,127,40,22,9,FontStyle.Regular));
-        controlsPanel.Controls.Add(TextLabel("Windows 原生 20 档 · 非鼠标硬件 DPI",559,163,420,24,9,FontStyle.Regular));
-        tips.SetToolTip(sizeBar,"指针大小：24–96 px"); tips.SetToolTip(speedBar,"Windows 原生速度：1–20 档");
-        status.SetBounds(33,739,760,28); status.ForeColor=Green; status.Text="准备就绪 · 点击卡片应用，右侧色块选择颜色"; root.Controls.Add(status);
-        root.Controls.Add(TextLabel("关闭窗口后驻留托盘；Ctrl+Q 退出并恢复原设置。",33,775,720,22,9,FontStyle.Regular));
-        var restore=new Button {Text="恢复原设置",Location=new Point(851,744),Size=new Size(176,43),FlatStyle=FlatStyle.Flat,BackColor=Green,ForeColor=Color.White}; restore.FlatAppearance.BorderSize=0; restore.Click+=delegate { Restore(); }; root.Controls.Add(restore);
+        BuildResponsiveLayout();
         var menu=new ContextMenuStrip(); menu.Items.Add("打开指针工坊",null,delegate { ShowWindow(); }); menu.Items.Add("恢复原设置",null,delegate { Restore(); }); menu.Items.Add(new ToolStripSeparator()); menu.Items.Add("退出并恢复",null,delegate { Quit(); });
         tray.Icon=Icon; tray.Text="指针工坊 · 双击打开"; tray.ContextMenuStrip=menu; tray.DoubleClick+=delegate { ShowWindow(); };
         debounce.Interval=100; debounce.Tick+=delegate { debounce.Stop(); ApplyStyle(); };
         sizeBar.ValueChanged+=delegate { UpdateValues(); if(initializing) return; if(selected<0) selected=0; debounce.Stop(); debounce.Start(); };
-        speedBar.ValueChanged+=delegate { UpdateValues(); if(initializing) return; try { session.SetSpeed(speedBar.Value); status.Text="已应用 · 系统鼠标速度 "+Native.Speed+" / 20"; } catch(Exception ex) { Error(ex); } };
+        speedBar.ValueChanged+=delegate { UpdateValues(); if(initializing) return; try { session.SetSpeed(speedBar.Value); status.Text="已应用 · 系统鼠标速度 "+Native.Speed+" / 20"; SaveCurrentProfile(true); } catch(Exception ex) { Error(ex); } };
         FormClosing+=delegate(object sender,FormClosingEventArgs e) {
             if(!quitting && e.CloseReason==CloseReason.UserClosing) { e.Cancel=true; Hide(); tray.Visible=true; tray.ShowBalloonTip(2500,"指针工坊仍在运行","双击托盘图标重新打开；右键可退出并恢复原设置。",ToolTipIcon.Info); }
-            else { debounce.Stop(); try { session.Restore(); } catch(Exception ex) { if(e.CloseReason==CloseReason.UserClosing) { e.Cancel=true; quitting=false; Error(ex); } } }
+            else { if(debounce.Enabled) SaveCurrentProfile(true); debounce.Stop(); try { session.Restore(); } catch(Exception ex) { if(e.CloseReason==CloseReason.UserClosing) { e.Cancel=true; quitting=false; Error(ex); } } }
         };
-        FormClosed+=delegate { tray.Dispose(); debounce.Dispose(); tips.Dispose(); ClearPalette(); palette.Dispose(); };
+        FormClosed+=delegate { tray.Dispose(); debounce.Dispose(); tips.Dispose(); ClearPalette(); palette.Dispose(); foreach(var card in cards) card.Dispose(); };
         UpdateValues(); initializing=false;
     }
     static Label TextLabel(string text,int x,int y,int w,int h,float size,FontStyle weight) { return new Label {Text=text,Location=new Point(x,y),Size=new Size(w,h),Font=new Font("Microsoft YaHei UI",size*1.5f,weight,GraphicsUnit.Pixel),ForeColor=weight==FontStyle.Bold?Ink:Muted}; }
-    public void SetPage(int value) { page=Math.Max(0,Math.Min(1,value)); foreach(var c in cards) c.Visible=c.Index/10==page; pageLabel.Text="第 "+(page+1)+" / 2 页"; previousPage.Enabled=page>0; nextPage.Enabled=page<1; }
+    public void SetPage(int value) {
+        page=Math.Max(0,Math.Min(1,value)); cardGrid.SuspendLayout();
+        try { cardGrid.Controls.Clear(); foreach(var c in cards) { c.Visible=false; if(c.Index/10==page) { cardGrid.Controls.Add(c,c.Index%5,(c.Index%10)/5); c.Visible=true; } } }
+        finally { cardGrid.ResumeLayout(true); }
+        pageLabel.Text="第 "+(page+1)+" / 2 页"; previousPage.Enabled=page>0; nextPage.Enabled=page<1;
+    }
     void ClearPalette() { while(palette.Items.Count>0) { var item=palette.Items[0]; palette.Items.RemoveAt(0); if(item.Image!=null) item.Image.Dispose(); item.Dispose(); } }
     void OpenPalette(StyleCard card) {
         ClearPalette();
@@ -330,18 +306,59 @@ sealed class MainForm : Form {
     void UpdateValues() { sizeValue.Text=sizeBar.Value+" px"; speedValue.Text=speedBar.Value+" / 20"; preview.CursorSize=sizeBar.Value; preview.Style=Math.Max(0,selected); preview.Invalidate(); }
     void ApplyStyle() {
         if(selected<0) return;
-        try { session.Apply(selected,sizeBar.Value); foreach(var c in cards) { c.Selected=c.Index==selected; c.Invalidate(); } UpdateValues(); status.Text="已全局应用 · "+Art.Names[selected]+" / "+sizeBar.Value+" px"; }
+        try { session.Apply(selected,sizeBar.Value); foreach(var c in cards) { c.Selected=c.Index==selected; c.Invalidate(); } UpdateValues(); status.Text="已全局应用 · "+Art.Names[selected]+" / "+sizeBar.Value+" px"; SaveCurrentProfile(true); }
         catch(Exception ex) { selected=-1; foreach(var c in cards) { c.Selected=false; c.Invalidate(); } Error(ex); }
     }
     void Error(Exception ex) { status.Text="未能完成操作 · "+ex.Message; MessageBox.Show(this,ex.Message,"操作未完成",MessageBoxButtons.OK,MessageBoxIcon.Warning); }
     void Restore() {
-        debounce.Stop(); try { if(session.Active) session.Restore(); else Native.ReloadCursors(); selected=-1; foreach(var c in cards) { c.Selected=false; c.Invalidate(); } initializing=true; speedBar.Value=Native.Speed; initializing=false; UpdateValues(); status.Text="已恢复 · Windows 已保存的指针主题与原鼠标速度"; } catch(Exception ex) { Error(ex); }
+        debounce.Stop(); try { if(session.Active) session.Restore(); else Native.ReloadCursors(); selected=-1; foreach(var c in cards) { c.Selected=false; c.Invalidate(); } initializing=true; speedBar.Value=Native.Speed; initializing=false; UpdateValues(); status.Text="已恢复 · Windows 已保存的指针主题与原鼠标速度"; SaveCurrentProfile(false); } catch(Exception ex) { Error(ex); }
     }
-    void ShowWindow() { Show(); WindowState=FormWindowState.Normal; Activate(); tray.Visible=false; }
+    void ShowWindow() { hideOnStartup=false; Show(); WindowState=FormWindowState.Normal; Activate(); tray.Visible=false; }
+    public void StartMinimized() { hideOnStartup=true; tray.Visible=true; }
+    protected override void SetVisibleCore(bool value) { if(hideOnStartup && value) { if(!IsHandleCreated) CreateHandle(); base.SetVisibleCore(false); return; } base.SetVisibleCore(value); }
+    public bool StartUserSession(bool updateStartupPath) {
+        persistChanges=true; initializing=true;
+        try {
+            startupCheck.Checked=!string.IsNullOrEmpty(StartupRegistration.Read(StartupRegistration.ValueName));
+            if(startupCheck.Checked && updateStartupPath) StartupRegistration.Set(true,Application.ExecutablePath,StartupRegistration.ValueName);
+            var saved=SavedProfile.Load();
+            if(saved.Enabled) {
+                selected=saved.Style; sizeBar.Value=saved.Size; speedBar.Value=saved.Speed;
+                if(selected>=0) session.Apply(selected,sizeBar.Value);
+                session.SetSpeed(speedBar.Value);
+                foreach(var card in cards) { card.Selected=card.Index==selected; card.RefreshColor(); }
+                if(selected>=0) SetPage(selected/10);
+                status.Text="已恢复上次配置 · "+(selected>=0?Art.Names[selected]:"系统指针")+" / "+sizeBar.Value+" px / 速度 "+speedBar.Value;
+            }
+            UpdateValues(); return true;
+        } catch(Exception ex) {
+            try { session.Restore(); } catch { }
+            selected=-1; foreach(var card in cards) { card.Selected=false; card.Invalidate(); }
+            speedBar.Value=Native.Speed; UpdateValues(); status.Text="未应用上次配置 · "+ex.Message; return false;
+        } finally { initializing=false; }
+    }
+    void SaveCurrentProfile(bool enabled) {
+        if(!persistChanges) return;
+        try { new SavedProfile {Enabled=enabled,Style=selected,Size=sizeBar.Value,Speed=speedBar.Value}.Save(); }
+        catch(Exception ex) { status.Text="系统设置已更新，但配置未保存 · "+ex.Message; }
+    }
+    void OnStartupChanged() {
+        if(initializing || !persistChanges) return;
+        try { StartupRegistration.Set(startupCheck.Checked,Application.ExecutablePath,StartupRegistration.ValueName); status.Text=startupCheck.Checked?"已开启开机自启 · 下次登录自动应用已保存配置":"已关闭开机自启 · 当前配置仍会自动保存"; }
+        catch(Exception ex) { initializing=true; startupCheck.Checked=!startupCheck.Checked; initializing=false; Error(ex); }
+    }
     void Quit() { quitting=true; Close(); }
     protected override bool ProcessCmdKey(ref Message msg,Keys keyData) { if(keyData==(Keys.Control|Keys.Q)) { Quit(); return true; } return base.ProcessCmdKey(ref msg,keyData); }
     public void SavePreview(string path) { using(var b=new Bitmap(Width,Height)) { DrawToBitmap(b,new Rectangle(0,0,Width,Height)); b.Save(path,ImageFormat.Png); } }
     public void ClosePreview() { quitting=true; Close(); }
+    public void SaveLayoutPreviews() {
+        Size original=ClientSize;
+        foreach(Size size in new[]{new Size(1600,960),new Size(800,640)}) {
+            ClientSize=size; SetPage(0); Application.DoEvents();
+            SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview-"+size.Width+"x"+size.Height+".png"));
+        }
+        ClientSize=original;
+    }
     public void VerifyControls() {
         Show(); Application.DoEvents();
         if(cards.FindAll(delegate(StyleCard c){return c.Visible;}).Count!=10) throw new Exception("First page must have 10 styles");
@@ -380,13 +397,13 @@ static class Program {
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
             using(var session=new MouseSession()) using(var form=new MainForm(session)) {
                 form.Show(); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview.png"));
-                form.SetPage(1); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview-page2.png")); form.ClosePreview();
+                form.SetPage(1); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview-page2.png")); form.SaveLayoutPreviews(); form.ClosePreview();
             }
             return 0;
         }
         bool created;
         using(var mutex=new Mutex(true,"Local\\MouseStudio.Desktop.Session",out created)) {
-            if(!created) { MessageBox.Show("指针工坊已在运行，请双击系统托盘中的绿色指针图标。","指针工坊"); return 0; }
+            if(!created) { if(Array.IndexOf(args,"--startup")<0) MessageBox.Show("指针工坊已在运行，请双击系统托盘中的绿色指针图标。","指针工坊"); return 0; }
             try {
                 Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
                 if(args.Length>0 && args[0]=="--restore") { MouseSession.Recover(); return 0; }
@@ -394,6 +411,8 @@ static class Program {
                 Art.LoadColors();
                 if(File.Exists(MouseSession.RecoveryPath)) MouseSession.Recover();
                 using(var session=new MouseSession()) using(var form=new MainForm(session)) {
+                    bool loaded=form.StartUserSession(true);
+                    if(Array.IndexOf(args,"--startup")>=0 && loaded) form.StartMinimized();
                     Application.Run(form);
                 }
                 return 0;
@@ -435,6 +454,8 @@ static class Program {
         foreach(uint id in Native.Roles) if(fingerprints[id]!=Fingerprint(id)) throw new Exception("UI test did not restore cursor: "+id);
         if(Native.Speed!=original) throw new Exception("UI test did not restore speed");
         lines.Add("PASS UI 2 pages / 20 styles, page selection retention, per-style color isolation, size slider, speed slider, restore, tray and exit");
+        BehaviorTests.Run();
+        lines.Add("PASS saved profiles across reopen, logon-style tray launch, registry enable/disable, responsive 800/1080/1600 layouts, corrupt configuration recovery");
         File.WriteAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-results.txt"),lines);
     }
     public static string Fingerprint(uint role) {

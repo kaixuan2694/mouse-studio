@@ -3,6 +3,7 @@
 *.zip
 *.pdb
 test-results.txt
+preview-800x640.png
 SHA256SUMS.txt
 
 # Local editor and OS files
