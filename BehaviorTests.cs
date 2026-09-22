@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -23,13 +23,13 @@ sealed partial class MainForm {
     }
     public void VerifySavedStart(bool minimized) {
         if(!StartUserSession(false)) throw new Exception("Saved profile failed to load");
-        if(selected!=17 || page!=1 || sizeBar.Value!=68 || Native.Speed!=13) throw new Exception("Saved style/size/speed was not applied");
+        if(selected!=39 || page!=3 || sizeBar.Value!=68 || Native.Speed!=13) throw new Exception("Saved style/size/speed was not applied");
         Native.IconInfo info; Native.Check(Native.GetIconInfo(Native.LoadCursor(IntPtr.Zero,new IntPtr(32512)),out info));
         try { using(var b=Image.FromHbitmap(info.color)) if(b.Width!=68) throw new Exception("Startup did not change actual cursor size"); }
         finally { Native.DeleteObject(info.color); Native.DeleteObject(info.mask); }
         if(minimized) { StartMinimized(); Show(); Application.DoEvents(); if(Visible || !tray.Visible) throw new Exception("Startup must stay in the tray"); }
     }
-    public void ChangeSavedProfileForTest() { ChangeColor(17,Color.CornflowerBlue,true); sizeBar.Value=76; speedBar.Value=14; }
+    public void ChangeSavedProfileForTest() { ChangeColor(39,Color.CornflowerBlue,true); sizeBar.Value=76; speedBar.Value=14; }
     public void QuitForTest() { Quit(); }
     public void RestoreForTest() { Restore(); }
 }
@@ -43,18 +43,25 @@ static class BehaviorTests {
         int originalSpeed=Native.Speed;
         try {
             AppStorage.DirectoryPath=testDirectory;
-            new SavedProfile {Enabled=true,Style=17,Size=68,Speed=13}.Save();
-            Art.CustomColors[17]=Color.Crimson; Art.SaveColors(); Array.Clear(Art.CustomColors,0,Art.CustomColors.Length); Art.LoadColors();
-            if(Art.Fill(17).ToArgb()!=Color.Crimson.ToArgb()) throw new Exception("Color preference did not survive reload");
+            Directory.CreateDirectory(testDirectory);
+            string[] legacy=new string[20]; for(int i=0;i<20;i++) legacy[i]="default";
+            legacy[17]=Color.Gold.ToArgb().ToString(); File.WriteAllLines(Art.ColorsPath,legacy);
+            Array.Clear(Art.CustomColors,0,Art.CustomColors.Length); Art.LoadColors();
+            if(Art.Fill(17).ToArgb()!=Color.Gold.ToArgb() || Art.CustomColors[39].HasValue) throw new Exception("Legacy palette migration failed");
+            new SavedProfile {Enabled=true,Style=17,Size=40,Speed=10}.Save();
+            if(SavedProfile.Load().Style!=17) throw new Exception("Legacy selection changed");
+            new SavedProfile {Enabled=true,Style=39,Size=68,Speed=13}.Save();
+            Art.CustomColors[39]=Color.Crimson; Art.SaveColors(); Array.Clear(Art.CustomColors,0,Art.CustomColors.Length); Art.LoadColors();
+            if(Art.Fill(39).ToArgb()!=Color.Crimson.ToArgb()) throw new Exception("Color preference did not survive reload");
             using(var session=new MouseSession()) using(var form=new MainForm(session)) {
                 form.VerifySavedStart(true); form.VerifyResponsiveLayout(); form.ChangeSavedProfileForTest();
                 // Quit before the size debounce fires: the user's final value must survive.
                 form.QuitForTest();
             }
             var saved=SavedProfile.Load();
-            if(!saved.Enabled || saved.Style!=17 || saved.Size!=76 || saved.Speed!=14 || Native.Speed!=originalSpeed) throw new Exception("Exit erased last profile or did not restore system speed");
+            if(!saved.Enabled || saved.Style!=39 || saved.Size!=76 || saved.Speed!=14 || Native.Speed!=originalSpeed) throw new Exception("Exit erased last profile or did not restore system speed");
             Array.Clear(Art.CustomColors,0,Art.CustomColors.Length); Art.LoadColors();
-            if(Art.Fill(17).ToArgb()!=Color.CornflowerBlue.ToArgb()) throw new Exception("Changed color did not persist");
+            if(Art.Fill(39).ToArgb()!=Color.CornflowerBlue.ToArgb()) throw new Exception("Changed color did not persist");
             using(var session=new MouseSession()) using(var form=new MainForm(session)) {
                 if(!form.StartUserSession(false) || Native.Speed!=14) throw new Exception("Relaunch did not restore latest profile");
                 form.Show(); Application.DoEvents(); form.RestoreForTest();

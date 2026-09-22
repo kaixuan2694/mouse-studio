@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -99,12 +99,12 @@ sealed class MouseSession : IDisposable {
     public void Dispose() { Restore(); }
 }
 
-static class Art {
-    public static readonly string[] Names={"素笺","藏锋","流光","桃夭","听竹","方寸","逐日","渡海","鎏月","星游","游龙","折纸","飞羽","长剑","团扇","小鱼","猫步","玉簪","山岚","火箭"};
-    public static readonly string[] Tags={"清晰 · 经典","沉稳 · 锐利","荧光 · 未来","柔和 · 甜美","轻盈 · 自然","像素 · 怀旧","暖意 · 活力","流线 · 冷静","金属 · 精致","星芒 · 幻想","蜿蜒 · 灵动","纸飞机 · 童心","羽翼 · 轻盈","剑意 · 侠气","扇影 · 风雅","游鱼 · 自在","猫耳 · 俏皮","簪花 · 清雅","山峰 · 空灵","升空 · 探索"};
-    public static readonly Color[] Fills={Color.White,Color.FromArgb(32,37,44),Color.FromArgb(14,26,40),Color.FromArgb(255,178,207),Color.FromArgb(110,224,181),Color.FromArgb(255,249,220),Color.FromArgb(255,152,69),Color.FromArgb(47,143,232),Color.FromArgb(224,190,118),Color.FromArgb(183,145,244),Color.FromArgb(112,203,180),Color.FromArgb(194,218,243),Color.FromArgb(190,212,230),Color.FromArgb(209,221,226),Color.FromArgb(242,177,166),Color.FromArgb(244,181,79),Color.FromArgb(221,188,160),Color.FromArgb(163,216,192),Color.FromArgb(153,187,204),Color.FromArgb(233,162,132)};
-    public static readonly Color[] Edges={Color.FromArgb(36,42,50),Color.FromArgb(220,227,237),Color.FromArgb(74,244,226),Color.FromArgb(136,50,91),Color.FromArgb(22,94,78),Color.FromArgb(62,52,55),Color.FromArgb(136,55,27),Color.FromArgb(15,50,108),Color.FromArgb(88,67,33),Color.FromArgb(71,43,123),Color.FromArgb(32,91,78),Color.FromArgb(48,77,117),Color.FromArgb(60,81,103),Color.FromArgb(53,67,82),Color.FromArgb(132,64,67),Color.FromArgb(118,75,30),Color.FromArgb(95,65,47),Color.FromArgb(48,102,82),Color.FromArgb(50,85,106),Color.FromArgb(119,61,43)};
-    public static readonly Color?[] CustomColors=new Color?[20];
+static partial class Art {
+    public static readonly string[] Names={"素笺","藏锋","流光","桃夭","听竹","方寸","逐日","渡海","鎏月","星游","游龙","折纸","飞羽","长剑","团扇","小鱼","猫步","玉簪","山岚","火箭","绒绒","抱抱","云团","布丁","莓好","甜筒","糖球","啾啾","团团","呱呱","水母","慢慢","蘑菇","肉垫","玩心","星环","阿飘","萌芽","眠月","纸鸢"};
+    public static readonly string[] Tags={"清晰 · 经典","沉稳 · 锐利","荧光 · 未来","柔和 · 甜美","轻盈 · 自然","像素 · 怀旧","暖意 · 活力","流线 · 冷静","金属 · 精致","星芒 · 幻想","蜿蜒 · 灵动","纸飞机 · 童心","羽翼 · 轻盈","剑意 · 侠气","扇影 · 风雅","游鱼 · 自在","猫耳 · 俏皮","簪花 · 清雅","山峰 · 空灵","升空 · 探索","垂耳 · 软萌","小熊 · 温暖","云朵 · 好梦","甜点 · 软糯","草莓 · 甜心","冰淇淋 · 清甜","糖果 · 缤纷","雏鸟 · 元气","企鹅 · 憨萌","青蛙 · 灵巧","海底 · 轻柔","蜗牛 · 悠闲","森林 · 童话","爪印 · 治愈","手柄 · 乐趣","行星 · 漫游","幽灵 · 淘气","新叶 · 生机","月牙 · 静谧","风筝 · 春风"};
+    public static readonly Color[] Fills={Color.White,Color.FromArgb(32,37,44),Color.FromArgb(14,26,40),Color.FromArgb(255,178,207),Color.FromArgb(110,224,181),Color.FromArgb(255,249,220),Color.FromArgb(255,152,69),Color.FromArgb(47,143,232),Color.FromArgb(224,190,118),Color.FromArgb(183,145,244),Color.FromArgb(112,203,180),Color.FromArgb(194,218,243),Color.FromArgb(190,212,230),Color.FromArgb(209,221,226),Color.FromArgb(242,177,166),Color.FromArgb(244,181,79),Color.FromArgb(221,188,160),Color.FromArgb(163,216,192),Color.FromArgb(153,187,204),Color.FromArgb(233,162,132),Color.FromArgb(245,215,231),Color.FromArgb(205,175,145),Color.FromArgb(218,234,245),Color.FromArgb(240,206,134),Color.FromArgb(239,148,166),Color.FromArgb(243,191,215),Color.FromArgb(200,167,238),Color.FromArgb(245,218,135),Color.FromArgb(158,186,205),Color.FromArgb(171,213,151),Color.FromArgb(184,168,223),Color.FromArgb(210,176,141),Color.FromArgb(233,160,140),Color.FromArgb(241,196,196),Color.FromArgb(163,201,205),Color.FromArgb(183,172,223),Color.FromArgb(213,233,221),Color.FromArgb(159,212,165),Color.FromArgb(232,212,156),Color.FromArgb(167,212,231)};
+    public static readonly Color[] Edges={Color.FromArgb(36,42,50),Color.FromArgb(220,227,237),Color.FromArgb(74,244,226),Color.FromArgb(136,50,91),Color.FromArgb(22,94,78),Color.FromArgb(62,52,55),Color.FromArgb(136,55,27),Color.FromArgb(15,50,108),Color.FromArgb(88,67,33),Color.FromArgb(71,43,123),Color.FromArgb(32,91,78),Color.FromArgb(48,77,117),Color.FromArgb(60,81,103),Color.FromArgb(53,67,82),Color.FromArgb(132,64,67),Color.FromArgb(118,75,30),Color.FromArgb(95,65,47),Color.FromArgb(48,102,82),Color.FromArgb(50,85,106),Color.FromArgb(119,61,43),Color.FromArgb(81,71,77),Color.FromArgb(68,58,48),Color.FromArgb(72,78,81),Color.FromArgb(80,68,44),Color.FromArgb(79,49,55),Color.FromArgb(81,63,71),Color.FromArgb(66,55,79),Color.FromArgb(81,72,45),Color.FromArgb(52,62,68),Color.FromArgb(57,71,50),Color.FromArgb(61,56,74),Color.FromArgb(70,58,47),Color.FromArgb(77,53,46),Color.FromArgb(80,65,65),Color.FromArgb(54,67,68),Color.FromArgb(61,57,74),Color.FromArgb(71,77,73),Color.FromArgb(53,70,55),Color.FromArgb(77,70,52),Color.FromArgb(55,70,77)};
+    public static readonly Color?[] CustomColors=new Color?[Names.Length];
     public static Color Fill(int s) { return CustomColors[s] ?? Fills[s]; }
     public static Color Edge(int s) { Color c=Fill(s); return !CustomColors[s].HasValue ? Edges[s] : c.GetBrightness()<0.28f ? Color.FromArgb(231,237,233) : Color.FromArgb(c.R/3,c.G/3,c.B/3); }
     public static Color Detail(int s,Color original) { Color c=Fill(s); return !CustomColors[s].HasValue ? original : Color.FromArgb((c.R+255)/2,(c.G+255)/2,(c.B+255)/2); }
@@ -173,6 +173,7 @@ static class Art {
                         case 18: Poly(g,fill,pen,5,4,54,40,36,38,43,56,25,42,9,48); using(var snow=new SolidBrush(Detail(s,Color.White))) Poly(g,snow,pen,5,4,25,19,19,20,20,27,12,23); g.DrawLine(pen,25,42,30,32); break;
                         case 19:
                             Poly(g,fill,pen,5,4,29,9,46,29,30,45,10,28); g.DrawLine(pen,29,9,10,28); Poly(g,fill,pen,13,32,10,49,25,41); Poly(g,fill,pen,34,13,50,11,43,26); g.FillEllipse(fill,23,22,12,12); g.DrawEllipse(pen,23,22,12,12); using(var fire=new SolidBrush(Detail(s,Color.FromArgb(255,216,112)))) Poly(g,fire,pen,37,40,54,57,44,53,40,55,35,44); break;
+                        default: DrawCute(g,s,fill,pen); break;
                     }
                     if(role==32650) { g.FillEllipse(fill,38,39,22,22); g.DrawArc(pen,41,42,16,16,-80,270); }
                     if(role==32651) { using(var f=new Font("Segoe UI",21,FontStyle.Bold,GraphicsUnit.Pixel)) g.DrawString("?",f,fill,37,30); }
@@ -263,7 +264,7 @@ sealed partial class MainForm : Form {
     int selected=-1; bool initializing=true, quitting;
     bool persistChanges,hideOnStartup;
     public MainForm(MouseSession s) {
-        session=s; Text="指针工坊 · Mouse Studio 1.2.0"; ClientSize=new Size(1080,880); MinimumSize=new Size(800,600);
+        session=s; Text="指针工坊 · Mouse Studio 1.3.0"; ClientSize=new Size(1080,880); MinimumSize=new Size(800,600);
         Font=new Font("Microsoft YaHei UI",14,FontStyle.Regular,GraphicsUnit.Pixel); BackColor=Color.FromArgb(247,248,244); ForeColor=Ink; AutoScaleMode=AutoScaleMode.Dpi; StartPosition=FormStartPosition.CenterScreen;
         using(var stream=typeof(MainForm).Assembly.GetManifestResourceStream("MouseStudio.AppIcon")) using(var appIcon=new Icon(stream,32,32)) Icon=(Icon)appIcon.Clone();
         BuildResponsiveLayout();
@@ -281,10 +282,10 @@ sealed partial class MainForm : Form {
     }
     static Label TextLabel(string text,int x,int y,int w,int h,float size,FontStyle weight) { return new Label {Text=text,Location=new Point(x,y),Size=new Size(w,h),Font=new Font("Microsoft YaHei UI",size*1.5f,weight,GraphicsUnit.Pixel),ForeColor=weight==FontStyle.Bold?Ink:Muted}; }
     public void SetPage(int value) {
-        page=Math.Max(0,Math.Min(1,value)); cardGrid.SuspendLayout();
+        int pageCount=(Art.Names.Length+9)/10; page=Math.Max(0,Math.Min(pageCount-1,value)); cardGrid.SuspendLayout();
         try { cardGrid.Controls.Clear(); foreach(var c in cards) { c.Visible=false; if(c.Index/10==page) { cardGrid.Controls.Add(c,c.Index%5,(c.Index%10)/5); c.Visible=true; } } }
         finally { cardGrid.ResumeLayout(true); }
-        pageLabel.Text="第 "+(page+1)+" / 2 页"; previousPage.Enabled=page>0; nextPage.Enabled=page<1;
+        pageLabel.Text="第 "+(page+1)+" / "+pageCount+" 页"; previousPage.Enabled=page>0; nextPage.Enabled=page<pageCount-1;
     }
     void ClearPalette() { while(palette.Items.Count>0) { var item=palette.Items[0]; palette.Items.RemoveAt(0); if(item.Image!=null) item.Image.Dispose(); item.Dispose(); } }
     void OpenPalette(StyleCard card) {
@@ -363,7 +364,20 @@ sealed partial class MainForm : Form {
         Show(); Application.DoEvents();
         if(cards.FindAll(delegate(StyleCard c){return c.Visible;}).Count!=10) throw new Exception("First page must have 10 styles");
         InvokeOnClick(nextPage,EventArgs.Empty);
-        if(!cards[19].Visible || cards[0].Visible || nextPage.Enabled) throw new Exception("Second page navigation failed");
+        if(!cards[19].Visible || cards[0].Visible || !nextPage.Enabled) throw new Exception("Second page navigation failed");
+        for(int target=2;target<4;target++) {
+            InvokeOnClick(nextPage,EventArgs.Empty); Application.DoEvents();
+            if(page!=target || !cards[target*10].Visible || cards.FindAll(delegate(StyleCard c){return c.Visible;}).Count!=10) throw new Exception("New page navigation failed");
+            InvokeOnClick(cards[target*10+9],EventArgs.Empty);
+            Color? original=Art.CustomColors[target*10+9]; string fingerprint=Program.Fingerprint(32512);
+            ChangeColor(target*10+9,Color.Crimson,false);
+            if(Program.Fingerprint(32512)==fingerprint) throw new Exception("New page color was not applied");
+            ChangeColor(target*10+9,original,false);
+        }
+        if(nextPage.Enabled) throw new Exception("Last page must disable next");
+        SetPage(99); if(page!=3) throw new Exception("Upper page bound failed");
+        SetPage(-1); if(page!=0 || previousPage.Enabled) throw new Exception("Lower page bound failed");
+        SetPage(1);
         InvokeOnClick(cards[19],EventArgs.Empty);
         if(!cards[19].Selected) throw new Exception("New style click failed");
         Color? originalColor=Art.CustomColors[19]; Color other=Art.Fill(0);
@@ -397,7 +411,7 @@ static class Program {
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
             using(var session=new MouseSession()) using(var form=new MainForm(session)) {
                 form.Show(); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview.png"));
-                form.SetPage(1); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview-page2.png")); form.SaveLayoutPreviews(); form.ClosePreview();
+                form.SetPage(1); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview-page2.png")); for(int p=2;p<4;p++) { form.SetPage(p); Application.DoEvents(); form.SavePreview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"preview-page"+(p+1)+".png")); } form.SaveLayoutPreviews(); form.ClosePreview();
             }
             return 0;
         }
@@ -424,12 +438,19 @@ static class Program {
         }
     }
     static void SelfTest() {
+        var rendered=new HashSet<string>();
+        for(int style=0;style<Art.Names.Length;style++) using(var bitmap=Art.Render(style,40,32512)) using(var stream=new MemoryStream()) {
+            bitmap.Save(stream,ImageFormat.Png);
+            if(!rendered.Add(Convert.ToBase64String(stream.ToArray()))) throw new Exception("Duplicate cursor artwork");
+            int visible=0; for(int y=0;y<40;y++) for(int x=0;x<40;x++) if(bitmap.GetPixel(x,y).A>0) visible++;
+            if(visible<50) throw new Exception("Empty cursor artwork");
+        }
         var lines=new List<string>(); int original=Native.Speed;
         var fingerprints=new Dictionary<uint,string>(); foreach(uint id in Native.Roles) fingerprints[id]=Fingerprint(id);
         if(File.Exists(MouseSession.RecoveryPath)) throw new Exception("Pending recovery must be resolved before tests.");
         using(var s=new MouseSession()) {
             try {
-                for(int style=0;style<20;style++) foreach(int size in new[]{24,40,96}) {
+                for(int style=0;style<Art.Names.Length;style++) foreach(int size in new[]{24,40,96}) {
                     s.Apply(style,size);
                     foreach(uint role in Native.Roles) {
                         Native.IconInfo info; Native.Check(Native.GetIconInfo(Native.LoadCursor(IntPtr.Zero,new IntPtr(role)),out info));
@@ -453,7 +474,7 @@ static class Program {
         }
         foreach(uint id in Native.Roles) if(fingerprints[id]!=Fingerprint(id)) throw new Exception("UI test did not restore cursor: "+id);
         if(Native.Speed!=original) throw new Exception("UI test did not restore speed");
-        lines.Add("PASS UI 2 pages / 20 styles, page selection retention, per-style color isolation, size slider, speed slider, restore, tray and exit");
+        lines.Add("PASS UI 4 pages / 40 styles, page selection retention, per-style color isolation, size slider, speed slider, restore, tray and exit");
         BehaviorTests.Run();
         lines.Add("PASS saved profiles across reopen, logon-style tray launch, registry enable/disable, responsive 800/1080/1600 layouts, corrupt configuration recovery");
         File.WriteAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-results.txt"),lines);

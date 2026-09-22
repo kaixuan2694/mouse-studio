@@ -11,6 +11,10 @@ A lightweight Windows desktop app for personalizing your actual system cursor. C
 ![Mouse Studio — page one](preview.png)
 ![Mouse Studio — page two](preview-page2.png)
 
+![Page 3 · Cute companions](preview-page3.png)
+
+![Page 4 · Little wonders](preview-page4.png)
+
 ## Download
 
 Get `MouseStudio.exe` from the [latest release](https://github.com/kaixuan2694/mouse-studio/releases/latest) and double-click it. The ZIP download also includes documentation, the recovery script, and the MIT license.
@@ -19,7 +23,7 @@ Built for Windows 10 / 11 with .NET Framework 4.x. No installation, administrato
 
 ## Features
 
-- **20 original cursor shapes across two pages:** classic arrows, a crisp pixel arrow, a paper plane, feather, sword, fan, fish, cat, flower hairpin, mountain, rocket, and more.
+- **40 original cursor shapes across four pages:** classic arrows, a crisp pixel arrow, a paper plane, feather, sword, fan, fish, cat, flower hairpin, mountain, rocket, and more. Pages 3–4 add 20 mostly cute designs: rabbit, bear, cloud, pudding, strawberry, ice cream, candy, chick, penguin, frog, jellyfish, snail, mushroom, paw, gamepad, planet, ghost, sprout, crescent and kite.
 - **Independent colors:** use the small color button on the right of each card to choose a preset, pick a custom color, or restore that shape's default palette. Colors are saved separately for each style.
 - **Pointer size:** adjust the cursor canvas from 24 to 96 px while preserving its click hotspot.
 - **Mouse sensitivity:** adjust all 20 native Windows pointer-speed levels while preserving the existing acceleration setting.
@@ -83,7 +87,7 @@ Get-Content .\test-results.txt
 
 Exit any running instance before running `--self-test`. This test temporarily changes the computer's mouse settings and attempts restoration in a `finally` block, including when a test fails.
 
-Coverage includes 20 styles × 3 sizes × 14 system cursor roles, hotspot checks, speed readback, comparison of the original and restored cursor images and masks, page navigation, independent colors, actual system color updates, sliders, tray behavior, and exit.
+Coverage includes 40 styles × 3 sizes × 14 system cursor roles, hotspot checks, speed readback, comparison of the original and restored cursor images and masks, page navigation, independent colors, actual system color updates, sliders, tray behavior, and exit.
 
 Additional checks cover profile reloads, logon-style tray startup, pending slider changes at exit, startup-entry removal, malformed preferences, and responsive layouts at widths of 800, 1080, and 1600 px. Test preferences and registry entries are isolated from the user's settings. The logon launch path is simulated in a separate process; the computer is not rebooted for testing.
 

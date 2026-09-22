@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -33,7 +33,7 @@ sealed partial class MainForm {
         header.RowStyles.Add(new RowStyle(SizeType.Absolute,28)); header.RowStyles.Add(new RowStyle(SizeType.Absolute,60)); header.RowStyles.Add(new RowStyle(SizeType.Percent,100));
         var brand=LabelText("MOUSE STUDIO   /   指针工坊",15,FontStyle.Bold); brand.ForeColor=Green; header.Controls.Add(brand,0,0);
         header.Controls.Add(LabelText("让每一次移动，都有你的风格。",29,FontStyle.Bold),0,1);
-        header.Controls.Add(LabelText("20 款指针  ·  独立配色  ·  自动记忆  ·  随时恢复",14,FontStyle.Regular),0,2);
+        header.Controls.Add(LabelText("40 款指针  ·  独立配色  ·  自动记忆  ·  随时恢复",14,FontStyle.Regular),0,2);
         layout.Controls.Add(header,0,0);
 
         var pager=Table(4,1);
